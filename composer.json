@@ -1,7 +1,17 @@
 {
-    "name": "uis/euspe",
-    "description": "PHP library for EUSPE",
-    "require": {
-        "php": "^7.0"
-    }
+  "name": "uis/euspe",
+  "description": "PHP library for EUSPE",
+  "require": {
+    "php": "^7.0",
+    "jetbrains/phpstorm-stubs": "2018.09.03"
+  },
+  "autoload": {
+    "psr-0" : {
+      "UIS\\EUSPE" : "src"
+    },
+    "files": [
+      "src/requirements/EUSignConsts.php",
+      "src/requirements/EUSignErrors.php"
+    ]
+  }
 }
