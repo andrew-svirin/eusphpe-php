@@ -1,0 +1,7 @@
+{
+    "name": "uis/euspe",
+    "description": "PHP library for EUSPE",
+    "require": {
+        "php": "^7.0"
+    }
+}
