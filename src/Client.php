@@ -27,6 +27,7 @@ class Client
      * @param \UIS\EUSPE\Server $server
      * @param CertStorage $certStorage
      * @param KeyStorage $keyStorage
+     * @param bool $debug
      */
     public function __construct(Server $server, CertStorage $certStorage, KeyStorage $keyStorage, bool $debug)
     {
