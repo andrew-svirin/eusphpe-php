@@ -6,7 +6,7 @@
     "jetbrains/phpstorm-stubs": "2018.09.03"
   },
   "autoload": {
-    "psr-0" : {
+    "psr-4" : {
       "UIS\\EUSPE" : "src"
     },
     "files": [
