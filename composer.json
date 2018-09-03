@@ -10,7 +10,7 @@
       "UIS\\EUSPE" : "src"
     },
     "files": [
-      "src/requirements/EUSignConsts.php",
+      "src/requirements/EUSignConsts.php"
     ]
   }
 }
