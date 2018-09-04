@@ -280,4 +280,18 @@ class Client implements ClientInterface
         euspe_finalize();
     }
 
+    function getSignerCertInfo(string $data): array
+    {
+        // TODO: Implement getSignerCertInfo() method.
+    }
+
+    function hasData(string $data): string
+    {
+        // TODO: Implement hasData() method.
+    }
+
+    function envelopData(string $data, array $certs): string
+    {
+        // TODO: Implement envelopData() method.
+    }
 }

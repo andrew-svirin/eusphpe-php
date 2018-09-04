@@ -15,5 +15,11 @@ interface ClientInterface
 
     function signData(string $data, Key $key): string;
 
+    function getSignerCertInfo(string $data): array;
+
+    function hasData(string $data): string;
+
+    function envelopData(string $data, array $certs): string;
+
     function close(): void;
 }
