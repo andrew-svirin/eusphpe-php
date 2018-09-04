@@ -48,7 +48,15 @@ class KeyStorage
         $key = new Key();
         $key->setName($name);
         $key->setPassword(file_get_contents("{$dir}/password"));
-        $key->setFilePath("{$dir}/key.dat");
+        if (file_exists("{$dir}/key.dat")) {
+            $key->setFilePath("{$dir}/key.dat");
+            $key->setRole(Key::ROLE_DAT);
+        } elseif (file_exists("{$dir}/key.jks")) {
+            $key->setFilePath("{$dir}/key.jks");
+            $key->setRole(Key::ROLE_JKS);
+        } else {
+            throw new \Exception('Not found key file.');
+        }
         $key->setServer($server);
         return $key;
     }

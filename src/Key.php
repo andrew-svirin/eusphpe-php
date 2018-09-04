@@ -5,10 +5,15 @@ namespace UIS\EUSPE;
 class Key
 {
 
+    const ROLE_DAT = 'dat';
+    const ROLE_JKS = 'jks';
+
     private $name;
     private $filePath;
     private $password;
     private $server;
+    private $role;
+    private $pk;
 
     public function getName(): string
     {
@@ -48,5 +53,25 @@ class Key
     public function setServer(Server $server): void
     {
         $this->server = $server;
+    }
+
+    public function getRole(): string
+    {
+        return $this->role;
+    }
+
+    public function setRole(string $role): void
+    {
+        $this->role = $role;
+    }
+
+    public function getPk(): string
+    {
+        return $this->pk;
+    }
+
+    public function setPk(string $pk): void
+    {
+        $this->pk = $pk;
     }
 }
