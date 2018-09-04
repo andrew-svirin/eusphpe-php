@@ -60,4 +60,12 @@ class KeyStorage
         $key->setServer($server);
         return $key;
     }
+
+    public function persist(Key $key, string $data): void
+    {
+        $filePath = "{$this->settingsDir}/{$key->getServer()->getHost()}/{$key->getName()}/key.dat";
+        file_put_contents($filePath, $data);
+        $key->setFilePath($filePath);
+        $key->setRole(Key::ROLE_DAT);
+    }
 }

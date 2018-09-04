@@ -40,4 +40,10 @@ class CertStorage
         $cert->setSettingsPath("{$this->settingsDir}/{$key->getServer()->getHost()}/{$key->getName()}");
         return $cert;
     }
+
+    public function persist(Key $key, string $data, array $info): void
+    {
+        $filePath = "CA-{$info['serial']}.cer";
+        file_put_contents("{$this->settingsDir}/{$key->getServer()->getHost()}/{$key->getName()}/{$filePath}", $data);
+    }
 }

@@ -2,7 +2,7 @@
 
 namespace UIS\EUSPE;
 
-class Client
+class Client implements ClientInterface
 {
 
     /**
@@ -29,7 +29,7 @@ class Client
      * @param KeyStorage $keyStorage
      * @param bool $debug
      */
-    public function __construct(Server $server, CertStorage $certStorage, KeyStorage $keyStorage, bool $debug)
+    public function __construct(Server $server, CertStorage $certStorage, KeyStorage $keyStorage, bool $debug = false)
     {
         $this->server = $server;
         $this->certStorage = $certStorage;
@@ -113,14 +113,16 @@ class Client
     /**
      * @param Key $key
      * @param Cert $cert
+     * @param KeyStorage $keyStorage
      * @throws \Exception
      */
-    public function retrieveKeyAndCertificates(Key $key, Cert $cert): void
+    public function retrieveKeyAndCertificates(Key $key, Cert $cert, KeyStorage $keyStorage): void
     {
         if (Key::ROLE_DAT === $key->getRole()) {
             $this->retrieveKeyAndCertificatesFromDat($key, $cert);
         } else if (Key::ROLE_JKS === $key->getRole()) {
-            $this->retrieveKeyAndCertificatesFromJks($key, $cert);
+            $this->retrieveKeyAndCertificatesFromJks($key, $keyStorage);
+            $this->retrieveKeyAndCertificatesFromDat($key, $cert);
         } else {
             throw new \Exception('Incorrect key role.');
         }
@@ -157,16 +159,14 @@ class Client
         foreach ($files as $file) {
             $certs[] = file_get_contents($file, FILE_USE_INCLUDE_PATH);
         }
-        $cert->setCerts($certs);
-        $key->setPk(file_get_contents($key->getFilePath(), FILE_USE_INCLUDE_PATH));
     }
 
     /**
      * @param Key $key
-     * @param Cert $cert
+     * @param KeyStorage $keyStorage
      * @throws \Exception
      */
-    private function retrieveKeyAndCertificatesFromJks(Key $key, Cert $cert): void
+    private function retrieveKeyAndCertificatesFromJks(Key $key, KeyStorage $keyStorage): void
     {
         $iErrorCode = 0;
         $this->handleResult(
@@ -179,34 +179,45 @@ class Client
         $sKeyAlias = '';
         $sPrivateKeyData = null;
         $aCertificates = null;
-        $this->handleResult(
-            'enumjksprivatekeys',
-            euspe_enumjksprivatekeys($sJKSPrivateKeyData, $iKeyIndex, $sKeyAlias, $iErrorCode),
-            $iErrorCode
-        );
-        $this->handleResult(
-            'getjksprivatekey',
-            euspe_getjksprivatekey($sJKSPrivateKeyData, $sKeyAlias, $sPrivateKeyData, $aCertificates, $iErrorCode),
-            $iErrorCode
-        );
-        $this->handleResult(
-            'setruntimeparameter (RESOLVE_OIDS)',
-            euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, true, $iErrorCode),
-            $iErrorCode
-        );
-        $cert->setCerts($aCertificates);
-        $key->setPk($sPrivateKeyData);
+        $iResult = 0;
+        while (0 === $iResult) {
+            $iResult = euspe_enumjksprivatekeys($sJKSPrivateKeyData, $iKeyIndex, $sKeyAlias, $iErrorCode);
+            if (0 === $iResult) {
+                $this->handleResult(
+                    'enumjksprivatekeys',
+                    $iResult,
+                    $iErrorCode
+                );
+                $this->handleResult(
+                    'getjksprivatekey',
+                    euspe_getjksprivatekey($sJKSPrivateKeyData, $sKeyAlias, $sPrivateKeyData, $aCertificates, $iErrorCode),
+                    $iErrorCode
+                );
+                $this->handleResult(
+                    'setruntimeparameter (RESOLVE_OIDS)',
+                    euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, true, $iErrorCode),
+                    $iErrorCode
+                );
+                $parsedCerts = $this->parseCertificates($aCertificates);
+                $certInfo = array_shift($parsedCerts);
+                if (!empty($certInfo['subjDRFOCode'])) {
+                    $keyStorage->persist($key, $sPrivateKeyData);
+                    break;
+                }
+            }
+            $iKeyIndex++;
+        }
     }
 
     /**
-     * @param Cert $cert
+     * @param array $certs
      * @return array
      * @throws \Exception
      */
-    public function parseCertificates(Cert $cert): array
+    public function parseCertificates(array $certs): array
     {
         $parsed = [];
-        foreach ($cert->getCerts() as $certData) {
+        foreach ($certs as $certData) {
             $this->handleResult(
                 'parsecert',
                 euspe_parsecert($certData, $certInfo, $iErrorCode),
@@ -220,9 +231,48 @@ class Client
         return $parsed;
     }
 
-    public function signData(string $data): string
+    /**
+     * @param string $data
+     * @param Key $key
+     * @return string
+     * @throws \Exception
+     */
+    public function signData(string $data, Key $key): string
     {
-        
+        $iErrorCode = 0;
+        $context = '';
+        $pkContext = '';
+        $sSign = '';
+        $bIsAlreadySigned = false;
+        $bExternal = true;
+        $bAppendCert = true;
+
+        $this->handleResult(
+            'ctxcreate',
+            euspe_ctxcreate($context, $iErrorCode),
+            $iErrorCode
+        );
+        $this->handleResult(
+            'ctxreadprivatekeyfile',
+            euspe_ctxreadprivatekeyfile($context, $key->getFilePath(), $key->getPassword(), $pkContext, $iErrorCode),
+            $iErrorCode
+        );
+        $this->handleResult(
+            'ctxsigndata',
+            euspe_ctxsigndata($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $data, $bExternal, $bAppendCert, $sSign, $iErrorCode),
+            $iErrorCode
+        );
+        $this->handleResult(
+            'ctxisalreadysigned',
+            euspe_ctxisalreadysigned($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $sSign, $bIsAlreadySigned, $iErrorCode),
+            $iErrorCode
+        );
+        if (!$bIsAlreadySigned) {
+            throw new \Exception('Content not signed properly.');
+        }
+        euspe_ctxfreeprivatekey($pkContext);
+        euspe_ctxfree($context);
+        return $sSign;
     }
 
     public function close(): void

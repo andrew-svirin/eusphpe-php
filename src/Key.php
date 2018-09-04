@@ -13,7 +13,6 @@ class Key
     private $password;
     private $server;
     private $role;
-    private $pk;
 
     public function getName(): string
     {
@@ -63,15 +62,5 @@ class Key
     public function setRole(string $role): void
     {
         $this->role = $role;
-    }
-
-    public function getPk(): string
-    {
-        return $this->pk;
-    }
-
-    public function setPk(string $pk): void
-    {
-        $this->pk = $pk;
     }
 }

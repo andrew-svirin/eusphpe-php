@@ -21,6 +21,7 @@ class ServerStorage
         return [
             'acskidd.gov.ua',
             'ca.ksystems.com.ua',
+            'acsk.privatbank.ua',
         ];
     }
 

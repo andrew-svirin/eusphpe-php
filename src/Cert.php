@@ -7,7 +7,6 @@ class Cert
 
     private $settingsPath;
     private $key;
-    private $certs;
 
     public function getSettingsPath(): string
     {
@@ -41,29 +40,15 @@ class Cert
                 $result[] = "{$this->settingsPath}/{$file}";
             }
         }
-        return $result;
-    }
-
-    public function setCerts(array $certs): void
-    {
-        $this->certs = $certs;
+        return empty($result) ? null : $result;
     }
 
     public function getCerts(): array
     {
-        return $this->certs;
-    }
-
-    public function getUserPaths(): array
-    {
-        $mainPaths = [];
-        $files = scandir($this->settingsPath);
-        foreach ($files as $file) {
-            if ('CA' === substr($file, 0, 2) && '04000000' === substr($file, 19, 8)) {
-                $mainPaths[] = "{$this->settingsPath }/{$file}";
-            }
+        $certs = [];
+        foreach ($this->getCertFiles() as $certFile) {
+            $certs[] = file_get_contents($certFile, FILE_USE_INCLUDE_PATH);
         }
-        return $mainPaths;
+        return $certs;
     }
-
 }
