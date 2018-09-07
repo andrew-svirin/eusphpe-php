@@ -1,4 +1,4 @@
-1. Configure php extension euspe by documentation. 
+1. Configure php extension euspe by documentation and remove osplm.ini from extension directory. 
 2. Configure stubs for IDE to view functions docs.
 3. Configure directories for servers, certificates, keys. 
    Look for osplm.dist.ini as example.
@@ -9,6 +9,9 @@
    - ...
 - keys\
    - server.name\
+      - user-name\
+         - key.[dat|jks]
+         - password
    - ...
 - servers\
    - server.name\
