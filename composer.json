@@ -1,5 +1,6 @@
 {
   "name": "uis/euspe",
+  "version: "1.0.0",
   "description": "PHP library for EUSPE",
   "repositories": [
     {
@@ -8,7 +9,9 @@
     }
   ],
   "require": {
-    "php": "^7.0",
+    "php": "^7.0"
+  },
+  "require-dev": {
     "jetbrains/phpstorm-stubs": "2018.09.03"
   },
   "autoload": {
