@@ -40,7 +40,7 @@ class Cert
                 $result[] = "{$this->settingsPath}/{$file}";
             }
         }
-        return empty($result) ? null : $result;
+        return empty($result) ? [] : $result;
     }
 
     public function getCerts(): array
