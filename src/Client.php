@@ -136,7 +136,7 @@ class Client implements ClientInterface
     private function retrieveKeyAndCertificatesFromDat(Key $key, Cert $cert): void
     {
         $files = $cert->getCertFiles();
-        if (null === $files) {
+        if (empty($files)) {
             $iErrorCode = 0;
             $this->handleResult(
                 'readprivatekeyfile(DAT)',

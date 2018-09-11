@@ -55,7 +55,7 @@ class KeyStorage
             $key->setFilePath("{$dir}/key.jks");
             $key->setRole(Key::ROLE_JKS);
         } else {
-            throw new \Exception('Not found key file.');
+            throw new \Exception('Not found key file in:' . $dir );
         }
         $key->setServer($server);
         return $key;
