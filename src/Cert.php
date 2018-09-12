@@ -40,15 +40,41 @@ class Cert
                 $result[] = "{$this->settingsPath}/{$file}";
             }
         }
-        return empty($result) ? [] : $result;
+        return empty($result) ? null : $result;
     }
 
+    /**
+     * @return array
+     * @throws \Exception
+     */
     public function getCerts(): array
     {
+        if (!($certFiles = $this->getCertFiles())) {
+            throw new \Exception('Certificates not found.');
+        }
         $certs = [];
-        foreach ($this->getCertFiles() as $certFile) {
+        foreach ($certFiles as $certFile) {
             $certs[] = file_get_contents($certFile, FILE_USE_INCLUDE_PATH);
         }
         return $certs;
+    }
+
+    public function getTimeGone(): ?int
+    {
+        $time = time();
+        $lastRequestFilePath = "{$this->settingsPath}/last-request.txt";
+        if (!file_exists($lastRequestFilePath)) {
+            $lastRequestTime = 0;
+        } else {
+            $lastRequestTime = (int)file_get_contents($lastRequestFilePath);
+        }
+        return $time - $lastRequestTime;
+    }
+
+    public function setTimeGone(): void
+    {
+        $time = time();
+        $lastRequestFilePath = "{$this->settingsPath}/last-request.txt";
+        file_put_contents($lastRequestFilePath, $time);
     }
 }

@@ -131,34 +131,36 @@ class Client implements ClientInterface
     /**
      * @param Key $key
      * @param Cert $cert
+     * @param int $delay
      * @throws \Exception
      */
-    private function retrieveKeyAndCertificatesFromDat(Key $key, Cert $cert): void
+    private function retrieveKeyAndCertificatesFromDat(Key $key, Cert $cert, int $delay = 30): void
     {
-        $files = $cert->getCertFiles();
-        if (empty($files)) {
-            $iErrorCode = 0;
-            $this->handleResult(
-                'readprivatekeyfile(DAT)',
-                euspe_readprivatekeyfile($key->getFilePath(), $key->getPassword(), $iErrorCode),
-                $iErrorCode
-            );
-            $bIsPrivateKeyRead = false;
-            $this->handleResult(
-                'isprivatekeyreaded',
-                euspe_isprivatekeyreaded($bIsPrivateKeyRead, $iErrorCode),
-                $iErrorCode
-            );
-            if (!$bIsPrivateKeyRead) {
-                throw new \Exception('Private key was not read.');
-            }
-            $this->resetPrivateKey();
-            $files = $cert->getCertFiles();
+        $certFiles = $cert->getCertFiles();
+        if (null !== $certFiles) {
+            return;
         }
-        $certs = [];
-        foreach ($files as $file) {
-            $certs[] = file_get_contents($file, FILE_USE_INCLUDE_PATH);
+        if (($timeGone = $cert->getTimeGone()) && $timeGone< $delay) {
+            throw new \Exception('Delay between certificates requests is ' . $delay . ' seconds. Left only ' . $timeGone . ' seconds.');
         }
+        $cert->setTimeGone();
+        $iErrorCode = 0;
+        $this->handleResult(
+            'readprivatekeyfile(DAT)',
+            euspe_readprivatekeyfile($key->getFilePath(), $key->getPassword(), $iErrorCode),
+            $iErrorCode
+        );
+        $bIsPrivateKeyRead = false;
+        $this->handleResult(
+            'isprivatekeyreaded',
+            euspe_isprivatekeyreaded($bIsPrivateKeyRead, $iErrorCode),
+            $iErrorCode
+        );
+        if (!$bIsPrivateKeyRead) {
+            throw new \Exception('Private key was not read.');
+        }
+        $this->resetPrivateKey();
+        $cert->getCertFiles();
     }
 
     /**
