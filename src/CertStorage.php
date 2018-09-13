@@ -33,17 +33,10 @@ class CertStorage
         return $this->settingsDir;
     }
 
-    public function get(Key $key): Cert
+    public function get(string $serverName, string $userName): Cert
     {
         $cert = new Cert();
-        $cert->setKey($key);
-        $cert->setSettingsPath("{$this->settingsDir}/{$key->getServer()->getHost()}/{$key->getName()}");
+        $cert->setDir("{$this->settingsDir}/{$serverName}/{$userName}");
         return $cert;
-    }
-
-    public function persist(Key $key, string $data, array $info): void
-    {
-        $filePath = "CA-{$info['serial']}.cer";
-        file_put_contents("{$this->settingsDir}/{$key->getServer()->getHost()}/{$key->getName()}/{$filePath}", $data);
     }
 }

@@ -5,17 +5,17 @@ namespace UIS\EUSPE;
 class Cert
 {
 
-    private $settingsPath;
+    private $dir;
     private $key;
 
-    public function getSettingsPath(): string
+    public function getDir(): string
     {
-        return $this->settingsPath;
+        return $this->dir;
     }
 
-    public function setSettingsPath(string $settingsPath): void
+    public function setDir(string $dir): void
     {
-        $this->settingsPath = $settingsPath;
+        $this->dir = $dir;
     }
 
     public function getKey(): Key
@@ -30,14 +30,14 @@ class Cert
 
     public function getCertFiles(): ?array
     {
-        $files = scandir($this->settingsPath);
+        $files = scandir($this->dir);
         if (empty($files)) {
             return null;
         }
         $result = [];
         foreach ($files as $key => $file) {
             if ('.cer' === substr($file, -4)) {
-                $result[] = "{$this->settingsPath}/{$file}";
+                $result[] = "{$this->dir}/{$file}";
             }
         }
         return empty($result) ? null : $result;
@@ -62,7 +62,7 @@ class Cert
     public function getTimeGone(): ?int
     {
         $time = time();
-        $lastRequestFilePath = "{$this->settingsPath}/last-request.txt";
+        $lastRequestFilePath = "{$this->dir}/last-request.txt";
         if (!file_exists($lastRequestFilePath)) {
             $lastRequestTime = 0;
         } else {
@@ -74,7 +74,7 @@ class Cert
     public function setTimeGone(): void
     {
         $time = time();
-        $lastRequestFilePath = "{$this->settingsPath}/last-request.txt";
+        $lastRequestFilePath = "{$this->dir}/last-request.txt";
         file_put_contents($lastRequestFilePath, $time);
     }
 }

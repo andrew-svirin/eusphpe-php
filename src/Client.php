@@ -2,21 +2,10 @@
 
 namespace UIS\EUSPE;
 
+use Exception;
+
 class Client implements ClientInterface
 {
-
-    /**
-     * @var \UIS\EUSPE\Server
-     */
-    private $server;
-    /**
-     * @var CertStorage
-     */
-    private $certStorage;
-    /**
-     * @var KeyStorage
-     */
-    private $keyStorage;
 
     /**
      * @var bool
@@ -24,16 +13,10 @@ class Client implements ClientInterface
     private $debug;
 
     /**
-     * @param \UIS\EUSPE\Server $server
-     * @param CertStorage $certStorage
-     * @param KeyStorage $keyStorage
      * @param bool $debug
      */
-    public function __construct(Server $server, CertStorage $certStorage, KeyStorage $keyStorage, bool $debug = false)
+    public function __construct(bool $debug = false)
     {
-        $this->server = $server;
-        $this->certStorage = $certStorage;
-        $this->keyStorage = $keyStorage;
         $this->debug = $debug;
     }
 
@@ -113,41 +96,23 @@ class Client implements ClientInterface
     /**
      * @param Key $key
      * @param Cert $cert
-     * @param KeyStorage $keyStorage
-     * @throws \Exception
-     */
-    public function retrieveKeyAndCertificates(Key $key, Cert $cert, KeyStorage $keyStorage): void
-    {
-        if (Key::ROLE_DAT === $key->getRole()) {
-            $this->retrieveKeyAndCertificatesFromDat($key, $cert);
-        } else if (Key::ROLE_JKS === $key->getRole()) {
-            $this->retrieveKeyAndCertificatesFromJks($key, $keyStorage);
-            $this->retrieveKeyAndCertificatesFromDat($key, $cert);
-        } else {
-            throw new \Exception('Incorrect key role.');
-        }
-    }
-
-    /**
-     * @param Key $key
-     * @param Cert $cert
+     * @param string $secretToken
      * @param int $delay
-     * @throws \Exception
+     * @throws Exception
      */
-    private function retrieveKeyAndCertificatesFromDat(Key $key, Cert $cert, int $delay = 30): void
+    public function retrieveKeyAndCertificates(Key $key, Cert $cert, string $secretToken, int $delay = 10): void
     {
-        $certFiles = $cert->getCertFiles();
-        if (null !== $certFiles) {
+        if (null !== $cert->getCertFiles()) {
             return;
         }
-        if (($timeGone = $cert->getTimeGone()) && $timeGone< $delay) {
+        if (($timeGone = $cert->getTimeGone()) && $timeGone < $delay) {
             throw new \Exception('Delay between certificates requests is ' . $delay . ' seconds. Left only ' . $timeGone . ' seconds.');
         }
         $cert->setTimeGone();
         $iErrorCode = 0;
         $this->handleResult(
-            'readprivatekeyfile(DAT)',
-            euspe_readprivatekeyfile($key->getFilePath(), $key->getPassword(), $iErrorCode),
+            'readprivatekeybinary(DAT)',
+            euspe_readprivatekeybinary($this->decrypt($key->getFile(), $secretToken), $this->decrypt($key->getPassword(), $secretToken), $iErrorCode),
             $iErrorCode
         );
         $bIsPrivateKeyRead = false;
@@ -160,55 +125,58 @@ class Client implements ClientInterface
             throw new \Exception('Private key was not read.');
         }
         $this->resetPrivateKey();
-        $cert->getCertFiles();
     }
 
     /**
-     * @param Key $key
-     * @param KeyStorage $keyStorage
+     * @param string $keyData
+     * @param string $keyType
+     * @return string
      * @throws \Exception
      */
-    private function retrieveKeyAndCertificatesFromJks(Key $key, KeyStorage $keyStorage): void
+    public function prepareKey(string $keyData, string $keyType): string
     {
-        $iErrorCode = 0;
-        $this->handleResult(
-            'setruntimeparameter (RESOLVE_OIDS)',
-            euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, false, $iErrorCode),
-            $iErrorCode
-        );
-        $sJKSPrivateKeyData = file_get_contents($key->getFilePath(), FILE_USE_INCLUDE_PATH);
-        $iKeyIndex = 0;
-        $sKeyAlias = '';
-        $sPrivateKeyData = null;
-        $aCertificates = null;
-        $iResult = 0;
-        while (0 === $iResult) {
-            $iResult = euspe_enumjksprivatekeys($sJKSPrivateKeyData, $iKeyIndex, $sKeyAlias, $iErrorCode);
-            if (0 === $iResult) {
-                $this->handleResult(
-                    'enumjksprivatekeys',
-                    $iResult,
-                    $iErrorCode
-                );
-                $this->handleResult(
-                    'getjksprivatekey',
-                    euspe_getjksprivatekey($sJKSPrivateKeyData, $sKeyAlias, $sPrivateKeyData, $aCertificates, $iErrorCode),
-                    $iErrorCode
-                );
-                $this->handleResult(
-                    'setruntimeparameter (RESOLVE_OIDS)',
-                    euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, true, $iErrorCode),
-                    $iErrorCode
-                );
-                $parsedCerts = $this->parseCertificates($aCertificates);
-                $certInfo = array_shift($parsedCerts);
-                if (!empty($certInfo['subjDRFOCode'])) {
-                    $keyStorage->persist($key, $sPrivateKeyData);
-                    break;
+        if (Key::ROLE_JKS === $keyType) {
+            $iErrorCode = 0;
+            $this->handleResult(
+                'setruntimeparameter (RESOLVE_OIDS)',
+                euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, false, $iErrorCode),
+                $iErrorCode
+            );
+            $iKeyIndex = 0;
+            $sKeyAlias = '';
+            $sPrivateKeyData = null;
+            $aCertificates = null;
+            $iResult = 0;
+            while (0 === $iResult) {
+                $iResult = euspe_enumjksprivatekeys($keyData, $iKeyIndex, $sKeyAlias, $iErrorCode);
+                if (0 === $iResult) {
+                    $this->handleResult(
+                        'enumjksprivatekeys',
+                        $iResult,
+                        $iErrorCode
+                    );
+                    $this->handleResult(
+                        'getjksprivatekey',
+                        euspe_getjksprivatekey($keyData, $sKeyAlias, $sPrivateKeyData, $aCertificates, $iErrorCode),
+                        $iErrorCode
+                    );
+                    $this->handleResult(
+                        'setruntimeparameter (RESOLVE_OIDS)',
+                        euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, true, $iErrorCode),
+                        $iErrorCode
+                    );
+                    $parsedCerts = $this->parseCertificates($aCertificates);
+                    $certInfo = array_shift($parsedCerts);
+                    if (!empty($certInfo['subjDRFOCode'])) {
+                        return $sPrivateKeyData;
+                    }
                 }
+                $iKeyIndex++;
             }
-            $iKeyIndex++;
+        } elseif (Key::ROLE_DAT === $keyType) {
+            return $keyData;
         }
+        throw new \Exception('Can not convert key.');
     }
 
     /**
@@ -236,11 +204,18 @@ class Client implements ClientInterface
     /**
      * @param string $data
      * @param Key $key
+     * @param Cert $cert
+     * @param string $secretToken
+     * @param int $delay
      * @return string
-     * @throws \Exception
+     * @throws Exception
      */
-    public function signData(string $data, Key $key): string
+    public function signData(string $data, Key $key, Cert $cert, string $secretToken, int $delay = 10): string
     {
+        if (($timeGone = $cert->getTimeGone()) && $timeGone < $delay) {
+            throw new \Exception('Delay between certificates requests is ' . $delay . ' seconds. Left only ' . $timeGone . ' seconds.');
+        }
+        $cert->setTimeGone();
         $iErrorCode = 0;
         $context = '';
         $pkContext = '';
@@ -255,8 +230,13 @@ class Client implements ClientInterface
             $iErrorCode
         );
         $this->handleResult(
-            'ctxreadprivatekeyfile',
-            euspe_ctxreadprivatekeyfile($context, $key->getFilePath(), $key->getPassword(), $pkContext, $iErrorCode),
+            'ctxreadprivatekeybinary',
+            euspe_ctxreadprivatekeybinary(
+                $context,
+                $this->decrypt($key->getFile(), $secretToken),
+                $this->decrypt($key->getPassword(), $secretToken),
+                $pkContext,
+                $iErrorCode),
             $iErrorCode
         );
         $this->handleResult(
@@ -285,15 +265,59 @@ class Client implements ClientInterface
     function getSignerCertInfo(string $data): array
     {
         // TODO: Implement getSignerCertInfo() method.
+        return [];
     }
 
     function hasData(string $data): string
     {
         // TODO: Implement hasData() method.
+        return '';
     }
 
     function envelopData(string $data, array $certs): string
     {
         // TODO: Implement envelopData() method.
+        return '';
+    }
+
+    /**
+     * @param string $data - message to encrypt
+     * @param string $secretToken - encryption key
+     * @return string
+     * @throws Exception
+     */
+    public function encrypt(string $data, string $secretToken): string
+    {
+        if (mb_strlen($secretToken, '8bit') !== SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
+            throw new Exception('Key is not the correct size (must be 32 bytes).');
+        }
+        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $cipher = $nonce . sodium_crypto_secretbox($data, $nonce, $secretToken);
+        sodium_memzero($data);
+        sodium_memzero($secretToken);
+        return $cipher;
+    }
+
+    /**
+     * @param string $encryptedData - message encrypted with safeEncrypt()
+     * @param string $secretToken - encryption key
+     * @return string
+     * @throws Exception
+     */
+    public function decrypt(string $encryptedData, string $secretToken): string
+    {
+        $nonce = mb_substr($encryptedData, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES, '8bit');
+        $ciphertext = mb_substr($encryptedData, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES, null, '8bit');
+        $plain = sodium_crypto_secretbox_open(
+            $ciphertext,
+            $nonce,
+            $secretToken
+        );
+        if (!is_string($plain)) {
+            throw new Exception('Invalid MAC');
+        }
+        sodium_memzero($ciphertext);
+        sodium_memzero($secretToken);
+        return $plain;
     }
 }

@@ -48,14 +48,30 @@ class ServerStorage
     }
 
     /**
-     * @param string $name
+     * @param string $serverName
+     * @param string $userName
      * @return Server
      * @throws \Exception
      */
-    public function get(string $name): Server
+    public function get(string $serverName, string $userName): Server
     {
         $server = new Server($this);
-        $server->setHost($name);
+        $server->setHost($serverName);
+        $server->setDir("{$this->settingsDir}/{$serverName}/tmp/{$userName}");
         return $server;
+    }
+
+    /**
+     * @param string $serverName
+     * @return string
+     * @throws \Exception
+     */
+    public function getTemplatePath(string $serverName): string
+    {
+        $path = "{$this->settingsDir}/{$serverName}/osplm.ini";
+        if (!file_exists($path)) {
+            throw new \Exception('Missing template file osplm.ini');
+        }
+        return $path;
     }
 }
