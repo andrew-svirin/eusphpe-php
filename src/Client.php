@@ -20,13 +20,6 @@ class Client implements ClientInterface
         $this->debug = $debug;
     }
 
-    /**
-     * @param string $command
-     * @param int $iResult
-     * @param int $iErrorCode
-     * @return bool
-     * @throws \Exception
-     */
     private function handleResult(string $command, int $iResult, int $iErrorCode = 0): bool
     {
         $sErrorDescription = '';
@@ -34,7 +27,7 @@ class Client implements ClientInterface
 
         if ($bError) {
             euspe_geterrdescr($iErrorCode, $sErrorDescription);
-            throw new \Exception($command . ' - ' . $sErrorDescription, $iErrorCode);
+            print "{$command} = FAIL {$sErrorDescription} {$iErrorCode} <br/>\r\n";
         } elseif ($this->debug) {
             print "{$command} = OK <br/>\r\n";
         }
@@ -86,14 +79,6 @@ class Client implements ClientInterface
     }
 
     /**
-     * @throws \Exception
-     */
-    private function resetPrivateKey(): void
-    {
-        $this->handleResult('resetprivatekey', euspe_resetprivatekey());
-    }
-
-    /**
      * @param Key $key
      * @param Cert $cert
      * @param string $secretToken
@@ -119,7 +104,7 @@ class Client implements ClientInterface
         if (!$bIsPrivateKeyRead) {
             throw new \Exception('Private key was not read.');
         }
-        $this->resetPrivateKey();
+        euspe_resetprivatekey();
     }
 
     /**
@@ -174,11 +159,6 @@ class Client implements ClientInterface
         throw new \Exception('Can not convert key.');
     }
 
-    /**
-     * @param array $certs
-     * @return array
-     * @throws \Exception
-     */
     public function parseCertificates(array $certs): array
     {
         $parsed = [];
@@ -229,18 +209,20 @@ class Client implements ClientInterface
                 $iErrorCode),
             $iErrorCode
         );
-        $this->handleResult(
-            'ctxsigndata',
-            euspe_ctxsigndata($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $data, $bExternal, $bAppendCert, $sSign, $iErrorCode),
-            $iErrorCode
-        );
-        $this->handleResult(
-            'ctxisalreadysigned',
-            euspe_ctxisalreadysigned($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $sSign, $bIsAlreadySigned, $iErrorCode),
-            $iErrorCode
-        );
-        if (!$bIsAlreadySigned) {
-            throw new \Exception('Content not signed properly.');
+        if (0 === $iErrorCode) {
+            $this->handleResult(
+                'ctxsigndata',
+                euspe_ctxsigndata($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $data, $bExternal, $bAppendCert, $sSign, $iErrorCode),
+                $iErrorCode
+            );
+            $this->handleResult(
+                'ctxisalreadysigned',
+                euspe_ctxisalreadysigned($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $sSign, $bIsAlreadySigned, $iErrorCode),
+                $iErrorCode
+            );
+            if (!$bIsAlreadySigned) {
+                throw new \Exception('Content not signed properly.');
+            }
         }
         euspe_ctxfreeprivatekey($pkContext);
         euspe_ctxfree($context);
