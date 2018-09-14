@@ -20,7 +20,7 @@ class Server
      * @return void
      * @throws \Exception
      */
-    public function setup(Cert $cert, ServerStorage $serverStorage): void
+    public function configure(Cert $cert, ServerStorage $serverStorage): void
     {
         $confPath = "{$this->dir}/osplm.ini";
         if (!file_exists($confPath)) {
@@ -36,9 +36,12 @@ class Server
         if (!is_dir($cert->getDir())) {
             mkdir($cert->getDir(), 0777, true);
         }
-        if (!putenv("LD_LIBRARY_PATH={$this->dir}")) {
-            throw new \Exception('Can not setup env');
-        }
+        putenv("LD_LIBRARY_PATH={$this->dir}");
+    }
+
+    public function unconfigure(): void
+    {
+        putenv("LD_LIBRARY_PATH=/usr/lib/php/eusphpei");
     }
 
     /**

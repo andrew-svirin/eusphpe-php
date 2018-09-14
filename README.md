@@ -25,18 +25,18 @@ $certsDir = '/var/www/atlant/TestData/PHP/certificates';
 $secretToken = ;
 $serverName = ;
 $userName = ;
+$serverStorage = new \UIS\EUSPE\ServerStorage($serversDir);
+$keyStorage = new \UIS\EUSPE\KeyStorage($keysDir);
+$certStorage = new \UIS\EUSPE\CertStorage($certsDir);
+$serverStorage->clearExpired(); // Run it by cron every 1 hour.
+$keyStorage->clearExpired(); // Run it by cron every 1 hour.
+$certStorage->clearExpired(); // Run it by cron every 1 hour.
+$key = $keyStorage->get($serverName, $userName);
+$cert = $certStorage->get($serverName, $userName);
+$client = new \UIS\EUSPE\Client();
 try {
-    $serverStorage = new \UIS\EUSPE\ServerStorage($serversDir);
-    $keyStorage = new \UIS\EUSPE\KeyStorage($keysDir);
-    $certStorage = new \UIS\EUSPE\CertStorage($certsDir);
-    $serverStorage->clearExpired(); // Run it by cron every 1 hour.
-    $keyStorage->clearExpired(); // Run it by cron every 1 hour.
-    $certStorage->clearExpired(); // Run it by cron every 1 hour.
-    $key = $keyStorage->get($serverName, $userName);
-    $cert = $certStorage->get($serverName, $userName);
     $server = $serverStorage->get($serverName, $userName);
-    $server->setup($cert, $serverStorage);
-    $client = new \UIS\EUSPE\Client(true);
+    $server->configure($cert, $serverStorage);
     $client->open();
     print_r($client->getFileStoreSettings());
     if (!$key->exists()) {
@@ -51,8 +51,9 @@ try {
     $client->retrieveKeyAndCertificates($key, $cert, $secretToken);
     $client->parseCertificates($cert->getCerts());
     $client->signData('Data for sign 123', $key, $cert, $secretToken);
-    $client->close();
 } catch (Exception $ex) {
+    $client->close();
+    $server->unconfigure();
     print "FAIL {$ex->getMessage()} {$ex->getCode()}<br/>\r\n";
 }
 ```
