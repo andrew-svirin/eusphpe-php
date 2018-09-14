@@ -25,19 +25,18 @@ $sensitivesDir = '/var/www/atlant/TestData/PHP/sensitives';
 // Do not store this token. 32 characters.
 $secretToken = '12312312312312312312312312323213';
 //$serverName = 'ca.ksystems.com.ua';
-//$serverName = 'acskidd.gov.ua';
+$serverName = 'acskidd.gov.ua';
 //$serverName = 'acsk.privatbank.ua';
 //$userName = 'user-1';
-//$userName = 'user-2';
+$userName = 'user-2';
 //$userName = 'user-3';
-//$keyType = 'dat';
-//$keyType = 'jks';
-$keyData = file_get_contents($sensitivesDir . '/' . $serverName . '/' . $userName . '/key.' . $keyType);
-$password = file_get_contents($sensitivesDir . '/' . $serverName . '/' . $userName . '/password');
 try {
     $serverStorage = new \UIS\EUSPE\ServerStorage($serversDir);
     $keyStorage = new \UIS\EUSPE\KeyStorage($keysDir);
     $certStorage = new \UIS\EUSPE\CertStorage($certsDir);
+    $serverStorage->clearExpired(); // Run it by cron every 1 hour.
+    $keyStorage->clearExpired(); // Run it by cron every 1 hour.
+    $certStorage->clearExpired(); // Run it by cron every 1 hour.
     $key = $keyStorage->get($serverName, $userName);
     $cert = $certStorage->get($serverName, $userName);
     $server = $serverStorage->get($serverName, $userName);
@@ -46,6 +45,10 @@ try {
     $client->open();
     print_r($client->getFileStoreSettings());
     if (!$key->exists()) {
+        $keyType = 'dat';
+//      $keyType = 'jks';
+        $keyData = file_get_contents($sensitivesDir . '/' . $serverName . '/' . $userName . '/key.' . $keyType);
+        $password = file_get_contents($sensitivesDir . '/' . $serverName . '/' . $userName . '/password');
         $key->setup(
             $client->encrypt($client->prepareKey($keyData, $keyType), $secretToken),
             $client->encrypt($password, $secretToken)
@@ -58,6 +61,4 @@ try {
 } catch (Exception $ex) {
     print "FAIL {$ex->getMessage()} {$ex->getCode()}<br/>\r\n";
 }
-
-echo "Ok";
 ```
