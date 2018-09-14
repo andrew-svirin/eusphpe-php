@@ -58,7 +58,7 @@ class ServerStorage
     {
         $server = new Server($this);
         $server->setHost($serverName);
-        $server->setDir("{$this->settingsDir}/{$serverName}/tmp/{$userName}");
+        $server->setDir("{$this->settingsDir}/{$serverName}/{$userName}");
         return $server;
     }
 
@@ -89,9 +89,9 @@ class ServerStorage
             if (!is_dir($serverDir) || '.' === $server || '..' === $server) {
                 continue;
             }
-            $users = scandir("{$serverDir}/tmp");
+            $users = scandir($serverDir);
             foreach ($users as $user) {
-                $userDir = "{$serverDir}/tmp/{$user}";
+                $userDir = "{$serverDir}/{$user}";
                 if (!is_dir($userDir) || '.' === $user || '..' === $user || ($time - filemtime($userDir) < $ttl)) {
                     continue;
                 }

@@ -97,18 +97,13 @@ class Client implements ClientInterface
      * @param Key $key
      * @param Cert $cert
      * @param string $secretToken
-     * @param int $delay
      * @throws Exception
      */
-    public function retrieveKeyAndCertificates(Key $key, Cert $cert, string $secretToken, int $delay = 10): void
+    public function retrieveKeyAndCertificates(Key $key, Cert $cert, string $secretToken): void
     {
         if (null !== $cert->getCertFiles()) {
             return;
         }
-        if (($timeGone = $cert->getTimeGone()) && $timeGone < $delay) {
-            throw new \Exception('Delay between certificates requests is ' . $delay . ' seconds. Left only ' . $timeGone . ' seconds.');
-        }
-        $cert->setTimeGone();
         $iErrorCode = 0;
         $this->handleResult(
             'readprivatekeybinary(DAT)',
@@ -206,16 +201,11 @@ class Client implements ClientInterface
      * @param Key $key
      * @param Cert $cert
      * @param string $secretToken
-     * @param int $delay
      * @return string
      * @throws Exception
      */
-    public function signData(string $data, Key $key, Cert $cert, string $secretToken, int $delay = 10): string
+    public function signData(string $data, Key $key, Cert $cert, string $secretToken): string
     {
-        if (($timeGone = $cert->getTimeGone()) && $timeGone < $delay) {
-            throw new \Exception('Delay between certificates requests is ' . $delay . ' seconds. Left only ' . $timeGone . ' seconds.');
-        }
-        $cert->setTimeGone();
         $iErrorCode = 0;
         $context = '';
         $pkContext = '';

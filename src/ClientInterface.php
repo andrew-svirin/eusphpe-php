@@ -9,11 +9,11 @@ interface ClientInterface
 
     function getFileStoreSettings(): array;
 
-    function retrieveKeyAndCertificates(Key $key, Cert $cert, string $secretToken, int $delay): void;
+    function retrieveKeyAndCertificates(Key $key, Cert $cert, string $secretToken): void;
 
     function parseCertificates(array $certs): array;
 
-    function signData(string $data, Key $key, Cert $cert, string $secretToken, int $delay): string;
+    function signData(string $data, Key $key, Cert $cert, string $secretToken): string;
 
     function getSignerCertInfo(string $data): array;
 

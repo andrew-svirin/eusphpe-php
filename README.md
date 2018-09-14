@@ -20,16 +20,11 @@ require_once "vendor/autoload.php";
 $serversDir = '/var/www/atlant/TestData/PHP/servers';
 $keysDir = '/var/www/atlant/TestData/PHP/keys';
 $certsDir = '/var/www/atlant/TestData/PHP/certificates';
-$sensitivesDir = '/var/www/atlant/TestData/PHP/sensitives';
 
-// Do not store this token. 32 characters.
-$secretToken = '12312312312312312312312312323213';
-//$serverName = 'ca.ksystems.com.ua';
-$serverName = 'acskidd.gov.ua';
-//$serverName = 'acsk.privatbank.ua';
-//$userName = 'user-1';
-$userName = 'user-2';
-//$userName = 'user-3';
+//// Do not store this token. 32 characters.
+$secretToken = ;
+$serverName = ;
+$userName = ;
 try {
     $serverStorage = new \UIS\EUSPE\ServerStorage($serversDir);
     $keyStorage = new \UIS\EUSPE\KeyStorage($keysDir);
@@ -45,18 +40,17 @@ try {
     $client->open();
     print_r($client->getFileStoreSettings());
     if (!$key->exists()) {
-        $keyType = 'dat';
-//      $keyType = 'jks';
-        $keyData = file_get_contents($sensitivesDir . '/' . $serverName . '/' . $userName . '/key.' . $keyType);
-        $password = file_get_contents($sensitivesDir . '/' . $serverName . '/' . $userName . '/password');
+        $keyType = ;
+        $keyData = ;
+        $password = ;
         $key->setup(
             $client->encrypt($client->prepareKey($keyData, $keyType), $secretToken),
             $client->encrypt($password, $secretToken)
         );
     }
     $client->retrieveKeyAndCertificates($key, $cert, $secretToken);
-    print_r($client->parseCertificates($cert->getCerts()));
-    print_r($client->signData('Data for sign 123', $key, $cert, $secretToken));
+    $client->parseCertificates($cert->getCerts());
+    $client->signData('Data for sign 123', $key, $cert, $secretToken);
     $client->close();
 } catch (Exception $ex) {
     print "FAIL {$ex->getMessage()} {$ex->getCode()}<br/>\r\n";

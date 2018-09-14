@@ -58,23 +58,4 @@ class Cert
         }
         return $certs;
     }
-
-    public function getTimeGone(): ?int
-    {
-        $time = time();
-        $lastRequestFilePath = "{$this->dir}/last-request.txt";
-        if (!file_exists($lastRequestFilePath)) {
-            $lastRequestTime = 0;
-        } else {
-            $lastRequestTime = (int)file_get_contents($lastRequestFilePath);
-        }
-        return $time - $lastRequestTime;
-    }
-
-    public function setTimeGone(): void
-    {
-        $time = time();
-        $lastRequestFilePath = "{$this->dir}/last-request.txt";
-        file_put_contents($lastRequestFilePath, $time);
-    }
 }
