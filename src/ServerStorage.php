@@ -22,6 +22,7 @@ class ServerStorage
             'acskidd.gov.ua',
             'ca.ksystems.com.ua',
             'acsk.privatbank.ua',
+            'ca.iit.com.ua',
         ];
     }
 
@@ -68,7 +69,9 @@ class ServerStorage
      */
     public function getTemplatePath(string $serverName): string
     {
-        $path = "{$this->settingsDir}/{$serverName}/osplm.ini";
+        $reflection = new \ReflectionClass(\Composer\Autoload\ClassLoader::class);
+        $vendorDir = dirname(dirname($reflection->getFileName()));
+        $path = "{$vendorDir}/uis/euspe/servers/{$serverName}.dist.ini";
         if (!file_exists($path)) {
             throw new \Exception('Missing template file osplm.ini');
         }
