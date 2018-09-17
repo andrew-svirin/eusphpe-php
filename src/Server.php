@@ -41,7 +41,7 @@ class Server
 
     public function unconfigure(): void
     {
-        putenv("LD_LIBRARY_PATH=/usr/lib/php/eusphpei");
+        putenv("LD_LIBRARY_PATH=/var/www/atlant/vendor/uis/euspe/servers/default");
     }
 
     /**
