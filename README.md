@@ -24,9 +24,9 @@ $keysDir = '/var/www/atlant/TestData/PHP/keys';
 $certsDir = '/var/www/atlant/TestData/PHP/certificates';
 
 //// Do not store this token. 32 characters.
-$secretToken = ;
-$serverName = ;
-$userName = ;
+$secretToken = ; // custom random  value
+$serverName = ; // server where key is registered
+$userName = ; // custom user name
 $serverStorage = new \UIS\EUSPE\ServerStorage($serversDir);
 $keyStorage = new \UIS\EUSPE\KeyStorage($keysDir);
 $certStorage = new \UIS\EUSPE\CertStorage($certsDir);
@@ -42,9 +42,9 @@ try {
     $client->open();
     print_r($client->getFileStoreSettings());
     if (!$key->exists()) {
-        $keyType = ;
-        $keyData = ;
-        $password = ;
+        $keyType = ; // key file ext.
+        $keyData = ; // key file content
+        $password = ; // password for key
         $key->setup(
             $client->encrypt($client->prepareKey($keyData, $keyType), $secretToken),
             $client->encrypt($password, $secretToken)

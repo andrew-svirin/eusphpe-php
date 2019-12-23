@@ -109,7 +109,7 @@ class Client implements ClientInterface
 
     /**
      * @param string $keyData
-     * @param string $keyType
+     * @param string $keyType dat|jks
      * @return string
      * @throws \Exception
      */
