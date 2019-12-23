@@ -12,7 +12,8 @@
     "php": "^7.1"
   },
   "require-dev": {
-    "jetbrains/phpstorm-stubs": "2018.09.03"
+    "jetbrains/phpstorm-stubs": "2018.09.03",
+    "phpunit/phpunit": "^6.5"
   },
   "autoload": {
     "psr-4" : {

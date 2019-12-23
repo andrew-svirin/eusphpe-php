@@ -1,8 +1,8 @@
-1. Configure php extension euspe by documentation and remove osplm.ini from extension directory. 
-1.1. Add to apache envvars 
-```LD_LIBRARY_PATH=/server/path/vendor/uis/euspe/servers/default```
-2. Configure stubs for IDE to view functions docs.
-3. Configure directories for servers, certificates, keys. 
+1. Configure php extension euspe by documentation (docs/EUSPHPE-20180505/Documentation/EUSignPHPDescription.doc)
+    1. Remove osplm.ini from extension directory. 
+    1. Add to apache envvars ```LD_LIBRARY_PATH=/server/path/vendor/uis/euspe/servers/default```
+1. Configure stubs for IDE to view functions docs.
+1. Configure directories for servers, certificates, keys. 
    Look for osplm.dist.ini as example.
    Setup 0777 permissions on folders.
 ```
@@ -13,9 +13,9 @@
         - osplm.ini
    - ...
 ```
-4. Use interface for communication.
+1. Use interface for communication.
 
-5. Exam ple usage:
+1. Exam ple usage:
 ```php
 require_once "vendor/autoload.php";
 
