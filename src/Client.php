@@ -8,30 +8,19 @@ class Client implements ClientInterface
 {
 
   /**
-   * @var bool
+   * @param string $command
+   * @param int|void $iResult
+   * @param int $iErrorCode
+   * @return bool
+   * @throws Exception
    */
-  private $debug;
-
-  /**
-   * @param bool $debug
-   */
-  public function __construct(bool $debug = false)
+  private function handleResult(string $command, $iResult, int $iErrorCode = null): bool
   {
-    $this->debug = $debug;
-  }
-
-  private function handleResult(string $command, int $iResult, int $iErrorCode = 0): bool
-  {
-    $sErrorDescription = '';
-    $bError = ($iResult != EM_RESULT_OK);
-
-    if ($bError) {
+    if (empty($iErrorCode) && !empty($iResult)) {
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
-      print "{$command} = FAIL {$sErrorDescription} {$iErrorCode} <br/>\r\n";
-    } elseif ($this->debug) {
-      print "{$command} = OK <br/>\r\n";
+      throw new Exception(sprintf('%s %s Error: %s. Check error in EUSignConsts.php by code.', dechex($iResult), $command, $sErrorDescription), $iErrorCode);
     }
-    return !$bError;
+    return $iResult;
   }
 
   /**
@@ -40,8 +29,7 @@ class Client implements ClientInterface
    */
   public function open(): void
   {
-    $iErrorCode = 0;
-    $this->handleResult('setcharset', euspe_setcharset(EM_ENCODING_UTF8), $iErrorCode);
+    $this->handleResult('setcharset', euspe_setcharset(EM_ENCODING_UTF8));
     $this->handleResult('init', euspe_init($iErrorCode), $iErrorCode);
   }
 
@@ -51,22 +39,17 @@ class Client implements ClientInterface
    */
   public function getFileStoreSettings(): array
   {
-    $iErrorCode = 0;
-    $sFileStorePath = '';
-    $bCheckCRLs = null;
-    $bAutoRefresh = null;
-    $bOwnCRLsOnly = null;
-    $bFullAndDeltaCRLs = null;
-    $bAutoDownloadCRLs = null;
-    $bSaveLoadedCerts = null;
-    $iExpireTime = 0;
-
     $this->handleResult('getfilestoresettings', euspe_getfilestoresettings(
       $sFileStorePath,
-      $bCheckCRLs, $bAutoRefresh, $bOwnCRLsOnly,
-      $bFullAndDeltaCRLs, $bAutoDownloadCRLs,
-      $bSaveLoadedCerts, $iExpireTime,
-      $iErrorCode), $iErrorCode);
+      $bCheckCRLs,
+      $bAutoRefresh,
+      $bOwnCRLsOnly,
+      $bFullAndDeltaCRLs,
+      $bAutoDownloadCRLs,
+      $bSaveLoadedCerts,
+      $iExpireTime,
+      $iErrorCode
+    ), $iErrorCode);
     return [
       'sFileStorePath' => $sFileStorePath,
       'bCheckCRLs' => $bCheckCRLs,
@@ -90,13 +73,15 @@ class Client implements ClientInterface
     if (null !== $cert->getCertFiles()) {
       return;
     }
-    $iErrorCode = 0;
     $this->handleResult(
       'readprivatekeybinary(DAT)',
-      euspe_readprivatekeybinary($this->decrypt($key->getKey(), $secretToken), $this->decrypt($key->getPassword(), $secretToken), $iErrorCode),
+      euspe_readprivatekeybinary(
+        $this->decrypt($key->getKey(), $secretToken),
+        $this->decrypt($key->getPassword(), $secretToken),
+        $iErrorCode
+      ),
       $iErrorCode
     );
-    $bIsPrivateKeyRead = false;
     $this->handleResult(
       'isprivatekeyreaded',
       euspe_isprivatekeyreaded($bIsPrivateKeyRead, $iErrorCode),
@@ -105,60 +90,63 @@ class Client implements ClientInterface
     if (!$bIsPrivateKeyRead) {
       throw new Exception('Can not retrieve Key and Certificates. Private key was not read.');
     }
-    euspe_resetprivatekey();
+    $this->handleResult('resetprivatekey', euspe_resetprivatekey());
   }
 
   /**
+   * Prepare multiple keys for jks.
    * @param User $user
-   * @return string
+   * @return array
    * @throws Exception
    */
-  public function prepareKey(User $user): string
+  public function prepareKeys(User $user)
   {
-    if (Key::ROLE_JKS === $user->getKeyType()) {
-      $iErrorCode = 0;
+    $this->handleResult(
+      'setruntimeparameter (RESOLVE_OIDS)',
+      euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, false, $iErrorCode),
+      $iErrorCode
+    );
+    $iKeyIndex = 0;
+    $certificates = [];
+    while (empty($iResult)) {
+      $iResult = $this->handleResult(
+        'enumjksprivatekeys',
+        euspe_enumjksprivatekeys(
+          $user->getKeyData(),
+          $iKeyIndex,
+          $sKeyAlias,
+          $iErrorCode
+        ),
+        EM_RESULT_ERROR
+      );
+
+      $this->handleResult(
+        'getjksprivatekey',
+        euspe_getjksprivatekey(
+          $user->getKeyData(),
+          $sKeyAlias,
+          $sPrivateKeyData,
+          $aCertificates,
+          $iErrorCode
+        )
+      );
       $this->handleResult(
         'setruntimeparameter (RESOLVE_OIDS)',
-        euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, false, $iErrorCode),
-        $iErrorCode
+        euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, true, $iErrorCode)
       );
-      $iKeyIndex = 0;
-      $sKeyAlias = '';
-      $sPrivateKeyData = null;
-      $aCertificates = null;
-      $iResult = 0;
-      while (0 === $iResult) {
-        $iResult = euspe_enumjksprivatekeys($user->getKeyData(), $iKeyIndex, $sKeyAlias, $iErrorCode);
-        if (0 === $iResult) {
-          $this->handleResult(
-            'enumjksprivatekeys',
-            $iResult,
-            $iErrorCode
-          );
-          $this->handleResult(
-            'getjksprivatekey',
-            euspe_getjksprivatekey($user->getKeyData(), $sKeyAlias, $sPrivateKeyData, $aCertificates, $iErrorCode),
-            $iErrorCode
-          );
-          $this->handleResult(
-            'setruntimeparameter (RESOLVE_OIDS)',
-            euspe_setruntimeparameter(EU_RESOLVE_OIDS_PARAMETER, true, $iErrorCode),
-            $iErrorCode
-          );
-          $parsedCerts = $this->parseCertificates($aCertificates);
-          $certInfo = array_shift($parsedCerts);
-          if (!empty($certInfo['subjDRFOCode'])) {
-            return $sPrivateKeyData;
-          }
-        }
-        $iKeyIndex++;
-      }
-    } elseif (Key::ROLE_DAT === $user->getKeyType()) {
-      return $user->getKeyData();
+      $parsedCerts = $this->parseCertificates($aCertificates);
+      $certificates[] = $parsedCerts;
+
+      $iKeyIndex++;
     }
-    throw new Exception('Can not prepare key. Can not convert key.');
+    return $certificates;
   }
 
+  /**
+   * @param array $certs
+   * @return array
+   * @throws Exception
+   */
   public function parseCertificates(array $certs): array
   {
     $parsed = [];
@@ -186,19 +174,7 @@ class Client implements ClientInterface
    */
   public function signData(string $data, Key $key, Certificate $cert, string $secretToken): string
   {
-    $iErrorCode = 0;
-    $context = '';
-    $pkContext = '';
-    $sSign = '';
-    $bIsAlreadySigned = false;
-    $bExternal = true;
-    $bAppendCert = true;
-
-    $this->handleResult(
-      'ctxcreate',
-      euspe_ctxcreate($context, $iErrorCode),
-      $iErrorCode
-    );
+    $this->handleResult('ctxcreate', euspe_ctxcreate($context, $iErrorCode), $iErrorCode);
     $this->handleResult(
       'ctxreadprivatekeybinary',
       euspe_ctxreadprivatekeybinary(
@@ -212,7 +188,7 @@ class Client implements ClientInterface
     if (0 === $iErrorCode) {
       $this->handleResult(
         'ctxsigndata',
-        euspe_ctxsigndata($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $data, $bExternal, $bAppendCert, $sSign, $iErrorCode),
+        euspe_ctxsigndata($pkContext, EU_CTX_SIGN_DSTU4145_WITH_GOST34311, $data, true, true, $sSign, $iErrorCode),
         $iErrorCode
       );
       $this->handleResult(
@@ -224,8 +200,8 @@ class Client implements ClientInterface
         throw new Exception('Content not signed properly.');
       }
     }
-    euspe_ctxfreeprivatekey($pkContext);
-    euspe_ctxfree($context);
+    $this->handleResult('ctxfreeprivatekey', euspe_ctxfreeprivatekey($pkContext));
+    $this->handleResult('ctxfree', euspe_ctxfree($context));
     return $sSign;
   }
 

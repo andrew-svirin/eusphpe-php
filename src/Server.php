@@ -8,24 +8,9 @@ class Server
 {
 
   /**
-   * @var ServerStorage
-   */
-  private $serverStorage;
-
-  /**
-   * @var string
-   */
-  private $host;
-
-  /**
    * @var string
    */
   private $dir;
-
-  public function __construct(ServerStorage $serverStorage)
-  {
-    $this->serverStorage = $serverStorage;
-  }
 
   /**
    * Prepare servers dir.
@@ -45,7 +30,8 @@ class Server
    */
   public function open(): void
   {
-    putenv(sprintf('LD_LIBRARY_PATH=%s', $this->dir));
+    $dir = realpath($this->dir);
+    putenv(sprintf('LD_LIBRARY_PATH=%s', $dir));
   }
 
   /**
@@ -53,24 +39,8 @@ class Server
    */
   public function close(): void
   {
-    putenv(sprintf('LD_LIBRARY_PATH=%s/servers/default', __DIR__));
-  }
-
-  /**
-   * @param string $host
-   * @throws Exception
-   */
-  public function setHost(string $host): void
-  {
-    if (!ServerStorage::verifyHost($host)) {
-      throw new Exception(sprintf('Server name %s is out of available list. Setup you server config first.', $host));
-    }
-    $this->host = $host;
-  }
-
-  public function getHost(): string
-  {
-    return $this->host;
+    $dir = sprintf('%s/servers/default', __DIR__);
+    putenv(sprintf('LD_LIBRARY_PATH=%s', $dir));
   }
 
   public function getDir(): string

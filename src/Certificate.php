@@ -8,7 +8,6 @@ class Certificate
 {
 
   private $dir;
-  private $key;
 
   public function getDir(): string
   {
@@ -18,16 +17,6 @@ class Certificate
   public function setDir(string $dir): void
   {
     $this->dir = $dir;
-  }
-
-  public function getKey(): Key
-  {
-    return $this->key;
-  }
-
-  public function setKey(Key $key): void
-  {
-    $this->key = $key;
   }
 
   /**
@@ -50,7 +39,7 @@ class Certificate
     $result = [];
     foreach ($files as $key => $file) {
       if ('.cer' === substr($file, -4)) {
-        $result[] = "{$this->dir}/{$file}";
+        $result[] = sprintf("%s/%s", realpath($this->dir), $file);
       }
     }
     return empty($result) ? null : $result;

@@ -48,15 +48,17 @@ class ServerStorage
    */
   public function get(User $user, Certificate $cert): Server
   {
-    $server = new Server($this);
-    $server->setHost($user->getServerName());
+    $server = new Server();
+    if (!ServerStorage::verifyHost($user->getServerName())) {
+      throw new Exception(sprintf('Server name %s is out of available list. Setup you server config first.', $user->getServerName()));
+    }
     $server->setDir("{$this->settingsDir}/{$user->getServerName()}/{$user->getUserName()}");
     $server->configure();
     $confPath = sprintf('%s/osplm.ini', $server->getDir());
     if (!file_exists($confPath)) {
       // Prepare server configuration from template.
       $template = file_get_contents($this->getTemplatePath($user->getServerName()));
-      $content = str_replace('{dir}', $cert->getDir(), $template);
+      $content = str_replace('{dir}', realpath($cert->getDir()), $template);
       file_put_contents($confPath, $content);
     }
     return $server;

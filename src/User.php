@@ -63,6 +63,16 @@ class User
     return $this->keyType;
   }
 
+  public function keyTypeIsJKS(): string
+  {
+    return 'jks' === $this->keyType;
+  }
+
+  public function keyTypeIsDAT(): string
+  {
+    return 'dat' === $this->keyType;
+  }
+
   /**
    * @return string
    */

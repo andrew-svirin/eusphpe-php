@@ -40,19 +40,24 @@ class ClientTest extends TestCase
     $cert = $certStorage->get($user);
     $client = new \UIS\EUSPE\Client();
     try {
+      $client->open();
       $server = $serverStorage->get($user, $cert);
       $server->open();
       $settings = $client->getFileStoreSettings();
       $this->assertNotEmpty($settings);
       if (!$key->exists()) {
-        $key->setKey($client->encrypt($client->prepareKey($user), $this->secretToken));
+        if ($user->keyTypeIsDAT()) {
+          $key->setKey($client->encrypt($user->getKeyData(), $this->secretToken));
+        } else {
+          $keys = $client->prepareKeys($user);
+          // TODO: Manage multiple certificates.
+          $key->setKey($client->encrypt(json_encode($keys), $this->secretToken));
+        }
         $key->setPassword($client->encrypt($user->getPassword(), $this->secretToken));
       }
       $client->retrieveKeyAndCertificates($key, $cert, $this->secretToken);
       $client->parseCertificates($cert->getCerts());
       $client->signData('Data for sign 123', $key, $cert, $this->secretToken);
-    } catch (\Exception $ex) {
-      print "FAIL {$ex->getMessage()} {$ex->getCode()}<br/>\r\n";
     } finally {
       if (isset($client)) {
         $client->close();

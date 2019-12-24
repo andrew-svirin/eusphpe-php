@@ -7,12 +7,7 @@ use Exception;
 class Key
 {
 
-  const ROLE_DAT = 'dat';
-  const ROLE_JKS = 'jks';
-
   private $dir;
-  private $server;
-  private $role;
 
   public function getKeyDataPath(): string
   {
@@ -22,26 +17,6 @@ class Key
   public function getPasswordPath(): string
   {
     return $this->dir . '/password.bin';
-  }
-
-  public function getServer(): Server
-  {
-    return $this->server;
-  }
-
-  public function setServer(Server $server): void
-  {
-    $this->server = $server;
-  }
-
-  public function getRole(): string
-  {
-    return $this->role;
-  }
-
-  public function setRole(string $role): void
-  {
-    $this->role = $role;
   }
 
   public function exists(): bool
