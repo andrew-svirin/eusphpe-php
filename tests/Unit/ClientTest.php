@@ -16,43 +16,41 @@ class ClientTest extends TestCase
 
   private $certsDir;
 
+  private $secretToken;
+
   public function setUp()
   {
     parent::setUp();
     $this->serversDir = $this->data . '/servers';
     $this->keysDir = $this->data . '/keys';
     $this->certsDir = $this->data . '/certificates';
+    $this->secretToken = base64_decode(getenv('SECRET_TOKEN_B64'));
   }
 
-  public function testOne()
+  public function testClient()
   {
-    // Do not store this token. 32 characters.
-    $user = $this->getUser(1);
+    $user = $this->getUser(2);
     $serverStorage = new \UIS\EUSPE\ServerStorage($this->serversDir);
     $keyStorage = new \UIS\EUSPE\KeyStorage($this->keysDir);
-    $certStorage = new \UIS\EUSPE\CertStorage($this->certsDir);
+    $certStorage = new \UIS\EUSPE\CertificateStorage($this->certsDir);
     $serverStorage->clearExpired(); // Run it by cron every 1 hour.
     $keyStorage->clearExpired(); // Run it by cron every 1 hour.
     $certStorage->clearExpired(); // Run it by cron every 1 hour.
-    $key = $keyStorage->get($user['serverName'], $user['userName']);
-    $cert = $certStorage->get($user['serverName'], $user['userName']);
+    $key = $keyStorage->get($user);
+    $cert = $certStorage->get($user);
     $client = new \UIS\EUSPE\Client();
     try {
-      $server = $serverStorage->get($user['serverName'], $user['userName']);
-      $server->configure($cert, $serverStorage);
-      $client->open();
+      $server = $serverStorage->get($user, $cert);
+      $server->open();
       $settings = $client->getFileStoreSettings();
       $this->assertNotEmpty($settings);
       if (!$key->exists()) {
-        $keyData = file_get_contents($this->data . '/' . $user['userName'] . '.' . $user['keyType']);
-        $key->setup(
-          $client->encrypt($client->prepareKey($keyData, $user['keyType']), $user['secretToken']),
-          $client->encrypt($user['password'], $user['secretToken'])
-        );
+        $key->setKey($client->encrypt($client->prepareKey($user), $this->secretToken));
+        $key->setPassword($client->encrypt($user->getPassword(), $this->secretToken));
       }
-      $client->retrieveKeyAndCertificates($key, $cert, $user['secretToken']);
+      $client->retrieveKeyAndCertificates($key, $cert, $this->secretToken);
       $client->parseCertificates($cert->getCerts());
-      $client->signData('Data for sign 123', $key, $cert, $user['secretToken']);
+      $client->signData('Data for sign 123', $key, $cert, $this->secretToken);
     } catch (\Exception $ex) {
       print "FAIL {$ex->getMessage()} {$ex->getCode()}<br/>\r\n";
     } finally {
@@ -60,24 +58,26 @@ class ClientTest extends TestCase
         $client->close();
       }
       if (isset($server)) {
-        $server->unconfigure();
+        $server->close();
       }
     }
     return;
   }
 
-  private function getUser($id)
+  private function getUser($id): \UIS\EUSPE\User
   {
     if (!($user = getenv(sprintf('USER_%d', $id)))) {
-      return null;
+      throw new \Exception('did not found user in .env file.');
     }
-    [$secretToken, $serverName, $userName, $keyType, $password] = explode(':', $user);
-    return [
-      'secretToken' => base64_decode($secretToken),
-      'serverName' => $serverName,
-      'userName' => $userName,
-      'keyType' => $keyType,
-      'password' => $password,
-    ];
+    [$serverName, $userName, $keyType, $password] = explode(':', $user);
+
+    $user = new \UIS\EUSPE\User(
+      $userName,
+      $serverName,
+      $keyType,
+      file_get_contents("{$this->data}/{$userName}.{$keyType}"),
+      $password
+    );
+    return $user;
   }
 }

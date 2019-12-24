@@ -5,21 +5,21 @@ namespace UIS\EUSPE;
 interface ClientInterface
 {
 
-    function open(): void;
+  function open(): void;
 
-    function getFileStoreSettings(): array;
+  function getFileStoreSettings(): array;
 
-    function retrieveKeyAndCertificates(Key $key, Cert $cert, string $secretToken): void;
+  function retrieveKeyAndCertificates(Key $key, Certificate $cert, string $secretToken): void;
 
-    function parseCertificates(array $certs): array;
+  function parseCertificates(array $certs): array;
 
-    function signData(string $data, Key $key, Cert $cert, string $secretToken): string;
+  function signData(string $data, Key $key, Certificate $cert, string $secretToken): string;
 
-    function getSignerCertInfo(string $data): array;
+  function getSignerCertInfo(string $data): array;
 
-    function hasData(string $data): string;
+  function hasData(string $data): string;
 
-    function envelopData(string $data, array $certs): string;
+  function envelopData(string $data, array $certs): string;
 
-    function close(): void;
+  function close(): void;
 }

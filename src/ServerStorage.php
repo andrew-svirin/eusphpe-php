@@ -2,6 +2,8 @@
 
 namespace UIS\EUSPE;
 
+use Exception;
+
 class ServerStorage
 {
 
@@ -38,29 +40,38 @@ class ServerStorage
   }
 
   /**
-   * @param string $serverName
-   * @param string $userName
+   * Get server connection for user.
+   * @param User $user
+   * @param Certificate $cert
    * @return Server
-   * @throws \Exception
+   * @throws Exception
    */
-  public function get(string $serverName, string $userName): Server
+  public function get(User $user, Certificate $cert): Server
   {
     $server = new Server($this);
-    $server->setHost($serverName);
-    $server->setDir("{$this->settingsDir}/{$serverName}/{$userName}");
+    $server->setHost($user->getServerName());
+    $server->setDir("{$this->settingsDir}/{$user->getServerName()}/{$user->getUserName()}");
+    $server->configure();
+    $confPath = sprintf('%s/osplm.ini', $server->getDir());
+    if (!file_exists($confPath)) {
+      // Prepare server configuration from template.
+      $template = file_get_contents($this->getTemplatePath($user->getServerName()));
+      $content = str_replace('{dir}', $cert->getDir(), $template);
+      file_put_contents($confPath, $content);
+    }
     return $server;
   }
 
   /**
    * @param string $serverName
    * @return string
-   * @throws \Exception
+   * @throws Exception
    */
   public function getTemplatePath(string $serverName): string
   {
     $path = sprintf('%s/servers/%s.dist.ini', __DIR__, $serverName);
     if (!file_exists($path)) {
-      throw new \Exception('Missing template file osplm.ini');
+      throw new Exception('Missing template file osplm.ini');
     }
     return $path;
   }

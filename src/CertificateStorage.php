@@ -4,7 +4,7 @@ namespace UIS\EUSPE;
 
 use Exception;
 
-class KeyStorage
+class CertificateStorage
 {
 
   private $settingsDir;
@@ -26,15 +26,15 @@ class KeyStorage
 
   /**
    * @param User $user
-   * @return Key
+   * @return Certificate
    * @throws Exception
    */
-  public function get(User $user): Key
+  public function get(User $user): Certificate
   {
-    $key = new Key();
-    $key->setDir("{$this->settingsDir}/{$user->getServerName()}/{$user->getUserName()}");
-    $key->configure();
-    return $key;
+    $cert = new Certificate();
+    $cert->setDir("{$this->settingsDir}/{$user->getServerName()}/{$user->getUserName()}");
+    $cert->configure();
+    return $cert;
   }
 
   public function clearExpired(int $ttl = 3600, $time = null): void
