@@ -4,6 +4,9 @@ namespace UIS\EUSPE;
 
 use Exception;
 
+/**
+ * Class Server implements server for client configuration.
+ */
 class Server
 {
 
@@ -11,6 +14,11 @@ class Server
    * @var string
    */
   private $dir;
+
+  public function __construct($dir)
+  {
+    $this->dir = $dir;
+  }
 
   /**
    * Prepare servers dir.
@@ -25,7 +33,6 @@ class Server
 
   /**
    * Open connection.
-   * @return void
    * @throws Exception
    */
   public function open(): void
@@ -43,13 +50,13 @@ class Server
     putenv(sprintf('LD_LIBRARY_PATH=%s', $dir));
   }
 
-  public function getDir(): string
+  public function getOSPLMConfigPath(): string
   {
-    return $this->dir;
+    return sprintf('%s/osplm.ini', $this->dir);
   }
 
-  public function setDir(string $dir): void
+  public function getOSPCUConfigPath(): string
   {
-    $this->dir = $dir;
+    return sprintf('%s/ospcu.ini', $this->dir);
   }
 }

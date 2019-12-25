@@ -13,7 +13,7 @@ class User
   /**
    * @var string
    */
-  private $serverName;
+  private $serverHost;
 
   /**
    * @var string [dat|jks]
@@ -30,34 +30,25 @@ class User
    */
   private $password;
 
-  public function __construct($userName, $serverName, $keyType, $keyData, $password)
+  public function __construct($userName, $serverHost, $keyType, $keyData, $password)
   {
     $this->userName = $userName;
-    $this->serverName = $serverName;
+    $this->serverHost = $serverHost;
     $this->keyType = $keyType;
     $this->keyData = $keyData;
     $this->password = $password;
   }
 
-  /**
-   * @return string
-   */
   public function getUserName(): string
   {
     return $this->userName;
   }
 
-  /**
-   * @return string
-   */
-  public function getServerName(): string
+  public function getServerHost(): string
   {
-    return $this->serverName;
+    return $this->serverHost;
   }
 
-  /**
-   * @return string
-   */
   public function getKeyType(): string
   {
     return $this->keyType;
@@ -73,17 +64,11 @@ class User
     return 'dat' === $this->keyType;
   }
 
-  /**
-   * @return string
-   */
   public function getKeyData(): string
   {
     return $this->keyData;
   }
 
-  /**
-   * @return string
-   */
   public function getPassword(): string
   {
     return $this->password;

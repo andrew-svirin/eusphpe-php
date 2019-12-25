@@ -9,14 +9,21 @@ class Certificate
 
   private $dir;
 
-  public function getDir(): string
-  {
-    return $this->dir;
-  }
-
-  public function setDir(string $dir): void
+  public function __construct(string $dir)
   {
     $this->dir = $dir;
+  }
+
+  /**
+   * @return string
+   * @throws Exception
+   */
+  public function getDirRealPath(): string
+  {
+    if(!($realPath = realpath($this->dir))){
+      throw new Exception('Can not find certificates dir.');
+    }
+    return $realPath;
   }
 
   /**
@@ -30,7 +37,11 @@ class Certificate
     }
   }
 
-  public function getCertFiles(): ?array
+  /**
+   * Get certificate files.
+   * @return array|null
+   */
+  private function getCerts(): ?array
   {
     $files = scandir($this->dir);
     if (empty($files)) {
@@ -38,20 +49,25 @@ class Certificate
     }
     $result = [];
     foreach ($files as $key => $file) {
-      if ('.cer' === substr($file, -4)) {
-        $result[] = sprintf("%s/%s", realpath($this->dir), $file);
+      if ('.cer' === substr($file, -4) && ($certPath = realpath(sprintf('%s/%s', $this->dir, $file)))) {
+        $result[] = $certPath;
       }
     }
     return empty($result) ? null : $result;
+  }
+
+  public function hasCerts(): bool
+  {
+    return null !== $this->getCerts();
   }
 
   /**
    * @return array
    * @throws Exception
    */
-  public function getCerts(): array
+  public function loadCerts(): array
   {
-    if (!($certFiles = $this->getCertFiles())) {
+    if (!($certFiles = $this->getCerts())) {
       throw new Exception('Certificates not found.');
     }
     $certs = [];

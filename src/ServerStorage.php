@@ -3,18 +3,21 @@
 namespace UIS\EUSPE;
 
 use Exception;
+use UIS\EUSPE\traits\ExpiredTrait;
 
 class ServerStorage
 {
 
-  private $settingsDir;
+  use ExpiredTrait;
+
+  protected $dir;
 
   public function __construct(string $settingsDir)
   {
-    $this->setSettingsDir($settingsDir);
+    $this->dir = $settingsDir;
   }
 
-  public static function getEnumHosts(): array
+  private static function getEnumHosts(): array
   {
     return [
       'acskidd.gov.ua',
@@ -24,42 +27,37 @@ class ServerStorage
     ];
   }
 
+  /**
+   * Host is allowed from the list.
+   * @param string $host
+   * @return bool
+   */
   public static function verifyHost(string $host): bool
   {
     return in_array($host, self::getEnumHosts());
   }
 
-  private function setSettingsDir(string $settingsDir): void
-  {
-    $this->settingsDir = $settingsDir;
-  }
-
-  public function getSettingsDir(): string
-  {
-    return $this->settingsDir;
-  }
-
   /**
-   * Get server connection for user.
-   * @param User $user
+   * Prepare server connection for user certificates.
+   * Check folders and prepare eusphpe config.
+   * @param User        $user
    * @param Certificate $cert
    * @return Server
    * @throws Exception
    */
-  public function get(User $user, Certificate $cert): Server
+  public function prepare(User $user, Certificate $cert): Server
   {
-    $server = new Server();
-    if (!ServerStorage::verifyHost($user->getServerName())) {
-      throw new Exception(sprintf('Server name %s is out of available list. Setup you server config first.', $user->getServerName()));
+    $server = new Server("{$this->dir}/{$user->getServerHost()}/{$user->getUserName()}");
+    if (!ServerStorage::verifyHost($user->getServerHost())) {
+      throw new Exception(sprintf('Server name %s is out of available list. Setup you server config first.', $user->getServerHost()));
     }
-    $server->setDir("{$this->settingsDir}/{$user->getServerName()}/{$user->getUserName()}");
     $server->configure();
-    $confPath = sprintf('%s/osplm.ini', $server->getDir());
-    if (!file_exists($confPath)) {
+    if (!file_exists($server->getOSPLMConfigPath())) {
       // Prepare server configuration from template.
-      $template = file_get_contents($this->getTemplatePath($user->getServerName()));
-      $content = str_replace('{dir}', realpath($cert->getDir()), $template);
-      file_put_contents($confPath, $content);
+      $template = file_get_contents($this->getTemplatePath($user->getServerHost()));
+      $content = str_replace('{dir}', $cert->getDirRealPath(), $template);
+      file_put_contents($server->getOSPLMConfigPath(), $content);
+      file_put_contents($server->getOSPCUConfigPath(), '');
     }
     return $server;
   }
@@ -78,32 +76,4 @@ class ServerStorage
     return $path;
   }
 
-  public function clearExpired(int $ttl = 3600, $time = null): void
-  {
-    if (null === $time) {
-      $time = time();
-    }
-    $servers = scandir($this->settingsDir);
-    foreach ($servers as $server) {
-      $serverDir = "{$this->settingsDir}/{$server}";
-      if (!is_dir($serverDir) || '.' === $server || '..' === $server) {
-        continue;
-      }
-      $users = scandir($serverDir);
-      foreach ($users as $user) {
-        $userDir = "{$serverDir}/{$user}";
-        if (!is_dir($userDir) || '.' === $user || '..' === $user || ($time - filemtime($userDir) < $ttl)) {
-          continue;
-        }
-        $files = scandir($userDir);
-        foreach ($files as $file) {
-          if ('.' === $file || '..' === $file) {
-            continue;
-          }
-          unlink("{$userDir}/{$file}");
-        }
-        rmdir($userDir);
-      }
-    }
-  }
 }

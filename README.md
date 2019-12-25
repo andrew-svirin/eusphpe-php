@@ -17,45 +17,62 @@
 
 1. Exam ple usage:
 ```php
-require_once "vendor/autoload.php";
-
-$serversDir = '/var/www/atlant/TestData/PHP/servers';
-$keysDir = '/var/www/atlant/TestData/PHP/keys';
-$certsDir = '/var/www/atlant/TestData/PHP/certificates';
-
-//// Do not store this token. 32 characters.
-$secretToken = ; // custom random  value
-$serverName = ; // server where key is registered
-$userName = ; // custom user name
-$serverStorage = new \UIS\EUSPE\ServerStorage($serversDir);
-$keyStorage = new \UIS\EUSPE\KeyStorage($keysDir);
-$certStorage = new \UIS\EUSPE\CertStorage($certsDir);
-$serverStorage->clearExpired(); // Run it by cron every 1 hour.
-$keyStorage->clearExpired(); // Run it by cron every 1 hour.
-$certStorage->clearExpired(); // Run it by cron every 1 hour.
-$key = $keyStorage->get($serverName, $userName);
-$cert = $certStorage->get($serverName, $userName);
-$client = new \UIS\EUSPE\Client();
-try {
-    $server = $serverStorage->get($serverName, $userName);
-    $server->configure($cert, $serverStorage);
-    $client->open();
-    print_r($client->getFileStoreSettings());
-    if (!$key->exists()) {
-        $keyType = ; // key file ext.
-        $keyData = ; // key file content
-        $password = ; // password for key
-        $key->setup(
-            $client->encrypt($client->prepareKey($keyData, $keyType), $secretToken),
-            $client->encrypt($password, $secretToken)
-        );
+    $user = new \UIS\EUSPE\User(
+      'user-name',
+      'server.name',
+      'dat|jks',
+      'bDataKey',
+      'secret'
+    );
+    $serverStorage = new \UIS\EUSPE\ServerStorage($this->serversDir);
+    $keyRingStorage = new \UIS\EUSPE\KeyRingStorage($this->keysDir);
+    $certStorage = new \UIS\EUSPE\CertificateStorage($this->certsDir);
+    $serverStorage->clearExpired(); // Run it by cron every 1 hour.
+    $keyRingStorage->clearExpired(); // Run it by cron every 1 hour.
+    $certStorage->clearExpired(); // Run it by cron every 1 hour.
+    $keyRing = $keyRingStorage->prepare($user);
+    $cert = $certStorage->prepare($user);
+    $client = new \UIS\EUSPE\Client();
+    try {
+      $server = $serverStorage->prepare($user, $cert);
+      $server->open();
+      $client->open();
+      $settings = $client->getFileStoreSettings();
+      $this->assertNotEmpty($settings);
+      if (!$keyRingStorage->exists($keyRing)) {
+        $keyRing->setPassword($user->getPassword());
+        if ($user->keyTypeIsDAT()) {
+          $keyRing->setPrivateKeys([$user->getKeyData()]);
+        }
+        else {
+          $keyRing->setPrivateKeys($client->retrieveJKSPrivateKeys($user->getKeyData()));
+        }
+        $keyRingStorage->store($keyRing, $this->secretToken);
+      }
+      $keyRingStorage->load($keyRing, $this->secretToken);
+      if (!$cert->hasCerts()) {
+        foreach ($keyRing->getPrivateKeys() as $privateKey) {
+          $client->readPrivateKey($privateKey, $keyRing->getPassword());
+          $client->resetPrivateKey();
+        }
+      }
+      $certificates = $client->parseCertificates($cert->loadCerts());
+      $this->assertNotEmpty($certificates);
+      if ($user->keyTypeIsJKS()) {
+        $sign = $client->signData('Data for sign 123', $keyRing->getPrivateKeyStamp(), $keyRing->getPassword());
+        $signsCount = $client->getSignsCount($sign);
+        $this->assertNotEmpty($signsCount);
+        for ($i = 0; $i < $signsCount; $i++) {
+          $signerInfo = $client->getSignerInfo($sign, $i);
+          $this->assertNotEmpty($signerInfo);
+        }
+      }
+    } finally {
+      if (isset($client)) {
+        $client->close();
+      }
+      if (isset($server)) {
+        $server->close();
+      }
     }
-    $client->retrieveKeyAndCertificates($key, $cert, $secretToken);
-    $client->parseCertificates($cert->getCerts());
-    $client->signData('Data for sign 123', $key, $cert, $secretToken);
-} catch (Exception $ex) {
-    $client->close();
-    $server->unconfigure();
-    print "FAIL {$ex->getMessage()} {$ex->getCode()}<br/>\r\n";
-}
 ```

@@ -27,37 +27,72 @@ class ClientTest extends TestCase
     $this->secretToken = base64_decode(getenv('SECRET_TOKEN_B64'));
   }
 
-  public function testClient()
+  /**
+   * @throws Exception
+   */
+  public function testClientForUser5()
   {
-    $user = $this->getUser(2);
+    $this->checkClientForUser(5);
+  }
+
+  /**
+   * @throws Exception
+   */
+  public function testClientForUser6()
+  {
+    $this->checkClientForUser(6);
+  }
+
+  /**
+   * @param $id
+   * @throws Exception
+   */
+  private function checkClientForUser($id)
+  {
+    $user = $this->getUser($id);
     $serverStorage = new \UIS\EUSPE\ServerStorage($this->serversDir);
-    $keyStorage = new \UIS\EUSPE\KeyStorage($this->keysDir);
+    $keyRingStorage = new \UIS\EUSPE\KeyRingStorage($this->keysDir);
     $certStorage = new \UIS\EUSPE\CertificateStorage($this->certsDir);
     $serverStorage->clearExpired(); // Run it by cron every 1 hour.
-    $keyStorage->clearExpired(); // Run it by cron every 1 hour.
+    $keyRingStorage->clearExpired(); // Run it by cron every 1 hour.
     $certStorage->clearExpired(); // Run it by cron every 1 hour.
-    $key = $keyStorage->get($user);
-    $cert = $certStorage->get($user);
+    $keyRing = $keyRingStorage->prepare($user);
+    $cert = $certStorage->prepare($user);
     $client = new \UIS\EUSPE\Client();
     try {
-      $client->open();
-      $server = $serverStorage->get($user, $cert);
+      $server = $serverStorage->prepare($user, $cert);
       $server->open();
+      $client->open();
       $settings = $client->getFileStoreSettings();
       $this->assertNotEmpty($settings);
-      if (!$key->exists()) {
+      if (!$keyRingStorage->exists($keyRing)) {
+        $keyRing->setPassword($user->getPassword());
         if ($user->keyTypeIsDAT()) {
-          $key->setKey($client->encrypt($user->getKeyData(), $this->secretToken));
-        } else {
-          $keys = $client->prepareKeys($user);
-          // TODO: Manage multiple certificates.
-          $key->setKey($client->encrypt(json_encode($keys), $this->secretToken));
+          $keyRing->setPrivateKeys([$user->getKeyData()]);
         }
-        $key->setPassword($client->encrypt($user->getPassword(), $this->secretToken));
+        else {
+          $keyRing->setPrivateKeys($client->retrieveJKSPrivateKeys($user->getKeyData()));
+        }
+        $keyRingStorage->store($keyRing, $this->secretToken);
       }
-      $client->retrieveKeyAndCertificates($key, $cert, $this->secretToken);
-      $client->parseCertificates($cert->getCerts());
-      $client->signData('Data for sign 123', $key, $cert, $this->secretToken);
+      $keyRingStorage->load($keyRing, $this->secretToken);
+      if (!$cert->hasCerts()) {
+        foreach ($keyRing->getPrivateKeys() as $privateKey) {
+          $client->readPrivateKey($privateKey, $keyRing->getPassword());
+          $client->resetPrivateKey();
+        }
+      }
+      $certificates = $client->parseCertificates($cert->loadCerts());
+      $this->assertNotEmpty($certificates);
+      if ($user->keyTypeIsJKS()) {
+        $sign = $client->signData('Data for sign 123', $keyRing->getPrivateKeyStamp(), $keyRing->getPassword());
+        $signsCount = $client->getSignsCount($sign);
+        $this->assertNotEmpty($signsCount);
+        for ($i = 0; $i < $signsCount; $i++) {
+          $signerInfo = $client->getSignerInfo($sign, $i);
+          $this->assertNotEmpty($signerInfo);
+        }
+      }
     } finally {
       if (isset($client)) {
         $client->close();
@@ -66,7 +101,6 @@ class ClientTest extends TestCase
         $server->close();
       }
     }
-    return;
   }
 
   private function getUser($id): \UIS\EUSPE\User
@@ -74,11 +108,11 @@ class ClientTest extends TestCase
     if (!($user = getenv(sprintf('USER_%d', $id)))) {
       throw new \Exception('did not found user in .env file.');
     }
-    [$serverName, $userName, $keyType, $password] = explode(':', $user);
+    [$serverHost, $userName, $keyType, $password] = explode(':', $user);
 
     $user = new \UIS\EUSPE\User(
       $userName,
-      $serverName,
+      $serverHost,
       $keyType,
       file_get_contents("{$this->data}/{$userName}.{$keyType}"),
       $password
