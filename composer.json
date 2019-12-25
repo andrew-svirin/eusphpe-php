@@ -1,6 +1,6 @@
 {
   "name": "uis/euspe",
-  "version": "2.0.7",
+  "version": "3.0.0",
   "description": "PHP library for EUSPE",
   "repositories": [
     {
@@ -16,8 +16,8 @@
     "phpunit/phpunit": "^6.5"
   },
   "autoload": {
-    "psr-4" : {
-      "UIS\\EUSPE\\" : "src"
+    "psr-4": {
+      "UIS\\EUSPE\\": "src"
     },
     "files": [
       "src/requirements/EUSignConsts.php"
