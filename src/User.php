@@ -30,7 +30,7 @@ class User
    */
   private $password;
 
-  public function __construct($userName, $serverHost, $keyType, $keyData, $password)
+  public function __construct($userName, $serverHost, $keyType = null, $keyData = null, $password = null)
   {
     $this->userName = $userName;
     $this->serverHost = $serverHost;
@@ -52,16 +52,6 @@ class User
   public function getKeyType(): string
   {
     return $this->keyType;
-  }
-
-  public function keyTypeIsJKS(): string
-  {
-    return 'jks' === $this->keyType;
-  }
-
-  public function keyTypeIsDAT(): string
-  {
-    return 'dat' === $this->keyType;
   }
 
   public function getKeyData(): string

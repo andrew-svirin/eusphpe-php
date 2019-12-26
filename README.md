@@ -41,7 +41,8 @@
       $this->assertNotEmpty($settings);
       if (!$keyRingStorage->exists($keyRing)) {
         $keyRing->setPassword($user->getPassword());
-        if ($user->keyTypeIsDAT()) {
+        $keyRing->setType($user->getKeyType());
+        if ($keyRing->typeIsDAT()) {
           $keyRing->setPrivateKeys([$user->getKeyData()]);
         }
         else {
@@ -58,7 +59,7 @@
       }
       $certificates = $client->parseCertificates($cert->loadCerts());
       $this->assertNotEmpty($certificates);
-      if ($user->keyTypeIsJKS()) {
+      if ($keyRing->typeIsJKS()) {
         $sign = $client->signData('Data for sign 123', $keyRing->getPrivateKeyStamp(), $keyRing->getPassword());
         $signsCount = $client->getSignsCount($sign);
         $this->assertNotEmpty($signsCount);

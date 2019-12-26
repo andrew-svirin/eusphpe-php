@@ -42,7 +42,7 @@ class KeyRingStorage
    * @param string  $secretToken
    * @throws Exception
    */
-  public function store(KeyRing $keyRing, string $secretToken)
+  public function store(KeyRing $keyRing, string $secretToken): void
   {
     $encodedPrivateKeys = [];
     foreach ($keyRing->getPrivateKeys() as $key => $privateKey) {
@@ -54,6 +54,7 @@ class KeyRingStorage
     $data = [
       'keys' => $this->encrypt($keys, $secretToken),
       'password' => $this->encrypt($keyRing->getPassword(), $secretToken),
+      'type' => $keyRing->getType(),
     ];
     if (!($dataEncoded = json_encode($data))) {
       throw new Exception('Can not store keyRing.');
@@ -66,25 +67,26 @@ class KeyRingStorage
    * @param string  $secretToken
    * @throws Exception
    */
-  public function load(KeyRing $keyRing, string $secretToken)
+  public function load(KeyRing $keyRing, string $secretToken): void
   {
-    if(!($file = file_get_contents($keyRing->getFilePath()))){
+    if (!($file = file_get_contents($keyRing->getFilePath()))) {
       throw new Exception('Can not load keyRing.');
     }
-    if(!($data = json_decode($file, true))){
+    if (!($data = json_decode($file, true))) {
       throw new Exception('Can not load keyRing.');
     }
-    if(!($encodedPrivateKeys = json_decode($this->decrypt($data['keys'], $secretToken)))){
+    if (!($encodedPrivateKeys = json_decode($this->decrypt($data['keys'], $secretToken)))) {
       throw new Exception('Can not load keyRing.');
     }
     $privateKeys = [];
     foreach ($encodedPrivateKeys as $key => $encodedPrivateKey) {
-      if(!($privateKeys[$key] = base64_decode($encodedPrivateKey))){
+      if (!($privateKeys[$key] = base64_decode($encodedPrivateKey))) {
         throw new Exception('Can not load keyRing.');
       }
     }
     $keyRing->setPrivateKeys($privateKeys);
     $keyRing->setPassword($this->decrypt($data['password'], $secretToken));
+    $keyRing->setType($data['type']);
   }
 
   /**
@@ -133,7 +135,7 @@ class KeyRingStorage
    * @return string
    * @throws Exception
    */
-  public function generateSecretToken()
+  public function generateSecretToken(): string
   {
     return random_bytes(32);
   }
