@@ -1,9 +1,9 @@
 <?php
 
-namespace UIS\EUSPE;
+namespace AndrewSvirin\EUSPE;
 
 use Exception;
-use UIS\EUSPE\traits\ExpiredTrait;
+use AndrewSvirin\EUSPE\traits\ExpiredTrait;
 
 class KeyRingStorage
 {

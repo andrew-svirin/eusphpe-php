@@ -50,15 +50,15 @@ class ClientTest extends TestCase
   private function checkClientForUser($id)
   {
     $user = $this->getUser($id);
-    $serverStorage = new \UIS\EUSPE\ServerStorage($this->serversDir);
-    $keyRingStorage = new \UIS\EUSPE\KeyRingStorage($this->keysDir);
-    $certStorage = new \UIS\EUSPE\CertificateStorage($this->certsDir);
+    $serverStorage = new \AndrewSvirin\EUSPE\ServerStorage($this->serversDir);
+    $keyRingStorage = new \AndrewSvirin\EUSPE\KeyRingStorage($this->keysDir);
+    $certStorage = new \AndrewSvirin\EUSPE\CertificateStorage($this->certsDir);
     $serverStorage->clearExpired(); // Run it by cron every 1 hour.
     $keyRingStorage->clearExpired(); // Run it by cron every 1 hour.
     $certStorage->clearExpired(); // Run it by cron every 1 hour.
     $keyRing = $keyRingStorage->prepare($user);
     $cert = $certStorage->prepare($user);
-    $client = new \UIS\EUSPE\Client();
+    $client = new \AndrewSvirin\EUSPE\Client();
     try {
       $server = $serverStorage->prepare($user, $cert);
       $server->open();
@@ -104,14 +104,14 @@ class ClientTest extends TestCase
     }
   }
 
-  private function getUser($id): \UIS\EUSPE\User
+  private function getUser($id): \AndrewSvirin\EUSPE\User
   {
     if (!($user = getenv(sprintf('USER_%d', $id)))) {
       throw new \Exception('did not found user in .env file.');
     }
     [$serverHost, $userName, $keyType, $password] = explode(':', $user);
 
-    $user = new \UIS\EUSPE\User(
+    $user = new \AndrewSvirin\EUSPE\User(
       $userName,
       $serverHost,
       $keyType,

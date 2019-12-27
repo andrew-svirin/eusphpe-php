@@ -1,10 +1,10 @@
 {
-  "name": "uis/eusphpe",
+  "name": "andrew-svirin/eusphpe",
   "description": "PHP library for EUSPHPE",
   "repositories": [
     {
       "type": "vcs",
-      "url": "https://github.com/AndriySvirin/phpstorm-stubs"
+      "url": "https://github.com/andrew-svirin/phpstorm-stubs"
     }
   ],
   "require": {
@@ -16,7 +16,7 @@
   },
   "autoload": {
     "psr-4": {
-      "UIS\\EUSPE\\": "src"
+      "AndrewSvirin\\EUSPE\\": "src"
     },
     "files": [
       "src/requirements/EUSignConsts.php"

@@ -1,6 +1,6 @@
 <?php
 
-namespace UIS\EUSPE\traits;
+namespace AndrewSvirin\EUSPE\traits;
 
 /**
  * Trait ExpiredTrait

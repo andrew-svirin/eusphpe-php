@@ -1,6 +1,6 @@
 <?php
 
-namespace UIS\EUSPE;
+namespace AndrewSvirin\EUSPE;
 
 use Exception;
 
