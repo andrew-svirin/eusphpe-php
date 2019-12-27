@@ -1,6 +1,6 @@
 {
-  "name": "uis/euspe",
-  "description": "PHP library for EUSPE",
+  "name": "uis/eusphpe",
+  "description": "PHP library for EUSPHPE",
   "repositories": [
     {
       "type": "vcs",
