@@ -1,6 +1,5 @@
 {
   "name": "uis/euspe",
-  "version": "3.0.0",
   "description": "PHP library for EUSPE",
   "repositories": [
     {
