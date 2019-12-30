@@ -48,7 +48,7 @@ class Certificate
       return null;
     }
     $result = [];
-    foreach ($files as $key => $file) {
+    foreach ($files as $file) {
       if ('.cer' === substr($file, -4) && ($certPath = realpath(sprintf('%s/%s', $this->dir, $file)))) {
         $result[] = $certPath;
       }
