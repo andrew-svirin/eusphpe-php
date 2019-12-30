@@ -21,8 +21,9 @@ class Client implements ClientInterface
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
       throw new Exception(
         sprintf(
-          '%s %s Error: %s. Check error in EUSignConsts.php by code.',
-          dechex($iResult),
+          'Result: %s Code: %s Command: %s Error: %s. Check error in EUSignConsts.php by code.',
+           dechex($iResult),
+          dechex($iErrorCode),
           $command,
           mb_convert_encoding($sErrorDescription, 'windows-1251', 'utf-8')
         )
@@ -83,7 +84,8 @@ class Client implements ClientInterface
         $password,
         $iErrorCode
       ),
-      $iErrorCode
+      $iErrorCode,
+      [1]
     );
     $this->handleResult(
       'isprivatekeyreaded',
