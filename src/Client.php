@@ -22,10 +22,12 @@ class Client implements ClientInterface
       throw new Exception(
         sprintf(
           'Result: %s Code: %s Command: %s Error: %s. Check error in EUSignConsts.php by code.',
-           dechex($iResult),
+          dechex($iResult),
           dechex($iErrorCode),
           $command,
-          mb_convert_encoding($sErrorDescription, 'windows-1251', 'utf-8')
+          ($encoding = mb_detect_encoding($sErrorDescription)) && $encoding !== 'UTF-8' ?
+                mb_convert_encoding($sErrorDescription, $encoding, 'utf-8') :
+                $sErrorDescription
         )
       );
     }
@@ -239,5 +241,30 @@ class Client implements ClientInterface
   {
     // TODO: Implement envelopData() method.
     return '';
+  }
+
+  public static function getInstanceClient(string $secretToken, KeyRingStorage $keyRingStorage, User $user, bool $hasCerts): ?self
+  {
+      $client = new self();
+      $client->open();
+      $keyRing = $keyRingStorage->prepare($user);
+      if (!$keyRingStorage->exists($keyRing)) {
+          $keyRing->setPassword($user->getPassword());
+          $keyRing->setType($user->getKeyType());
+          if ($keyRing->typeIsDAT()) {
+              $keyRing->setPrivateKeys([$user->getKeyData()]);
+          } else {
+              $keyRing->setPrivateKeys($client->retrieveJKSPrivateKeys($user->getKeyData()));
+          }
+          $keyRingStorage->store($keyRing, $secretToken);
+      }
+      $keyRingStorage->load($keyRing, $secretToken);
+      if (!$hasCerts) {
+          foreach ($keyRing->getPrivateKeys() as $privateKey) {
+              $client->readPrivateKey($privateKey, $keyRing->getPassword());
+              $client->resetPrivateKey();
+          }
+      }
+      return $client;
   }
 }

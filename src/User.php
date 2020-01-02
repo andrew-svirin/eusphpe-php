@@ -30,7 +30,7 @@ class User
    */
   private $password;
 
-  public function __construct($userName, $serverHost, $keyType = null, $keyData = null, $password = null)
+  public function __construct(string $userName, string $serverHost, string $keyType = null, string $keyData = null, string $password = null)
   {
     $this->userName = $userName;
     $this->serverHost = $serverHost;
