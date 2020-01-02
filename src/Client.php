@@ -19,13 +19,16 @@ class Client implements ClientInterface
   {
     if (!empty($iErrorCode) && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
+      $utfEncoding = 'utf-8';
       throw new Exception(
         sprintf(
           'Result: %s Code: %s Command: %s Error: %s. Check error in EUSignConsts.php by code.',
-           dechex($iResult),
+          dechex($iResult),
           dechex($iErrorCode),
           $command,
-          mb_convert_encoding($sErrorDescription, 'windows-1251', 'utf-8')
+          ($encoding = mb_detect_encoding($sErrorDescription)) && strtolower($encoding) !== $utfEncoding ?
+                mb_convert_encoding($sErrorDescription, $encoding, $utfEncoding) :
+                $sErrorDescription
         )
       );
     }
