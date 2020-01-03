@@ -32,10 +32,10 @@
     $certStorage->clearExpired(); // Run it by cron every 1 hour.
     $keyRing = $keyRingStorage->prepare($user);
     $cert = $certStorage->prepare($user);
-    $client = new \AndrewSvirin\EUSPE\Client();
     try {
       $server = $serverStorage->prepare($user, $cert);
       $server->open();
+      $client = new \AndrewSvirin\EUSPE\Client();
       $client->open();
       $settings = $client->getFileStoreSettings();
       $this->assertNotEmpty($settings);
