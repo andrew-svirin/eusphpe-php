@@ -582,6 +582,40 @@ print_result($sTAB.'issuer', $spIssuerCN);
 
 //----------------------------------------------------------------------------------------
 
+/* Sign file internal */
+
+$bExternal = false;
+
+$iResult = euspe_signfile(
+	$sFileWithData, $sFileWithSigData, $bExternal, $iErrorCode);
+if (!handle_result("SignFile (internal)", $iResult, $iErrorCode))
+	Exit;
+
+print_result('Signed file', $sFileWithSigData);
+
+$iResult = euspe_verifyfile(
+	$sFileWithSigData, $sFileWithVerData, 
+	$sSignTime, $bIsTSPUse,
+	$spIssuer, $spIssuerCN, $spSerial,
+	$spSubject, $spSubjCN,
+	$spSubjOrg, $spSubjOrgUnit,
+	$spSubjTitle, $spSubjState,
+	$spSubjLocality, $spSubjFullName,
+	$spSubjAddress, $spSubjPhone,
+	$spSubjEMail, $spSubjDNS,
+	$spSubjEDRPOUCode, $spSubjDRFOCode,
+	$iErrorCode);
+if (!handle_result("VerifyFile (internal)", $iResult, $iErrorCode))
+	Exit;
+
+print_result('Verified file', $sFileWithVerData);
+print_result('Signer info', '');
+print_result($sTAB.'subject', $spSubjCN);
+print_result($sTAB.'serial', $spSerial);
+print_result($sTAB.'issuer', $spIssuerCN);
+
+//----------------------------------------------------------------------------------------
+
 /* Raw sign hash */
 
 $sHash = '';
@@ -1671,6 +1705,69 @@ if (!handle_result("CtxDevelopData", $iResult, $iErrorCode))
 
 print_result('Developed string', $spDevData);
 print_result('Sender info', '');
+print_result($sTAB.'subject', $spSubjCN);
+print_result($sTAB.'serial', $spSerial);
+print_result($sTAB.'issuer', $spIssuerCN);
+
+//----------------------------------------------------------------------------------------
+
+/* Make internal sign from external sign */
+
+$sSign = '';
+$sSigner = '';
+$sPreviousSign = '';
+$signerInfo = null;
+$sSignerCert = null;
+
+$iResult = euspe_signcreateext(
+	$sData, $sSign, $iErrorCode);
+if (!handle_result("SignData (external)", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_getsigner(
+	0, $sSign, $sSigner, $iErrorCode);
+if (!handle_result("GetSigner", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_getsignerinfoex(
+	0, $sSign, $signerInfo, $sSignerCert, $iErrorCode);
+if (!handle_result("GetSignerInfoEx", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_appendvalidationdatatosigner(
+	$sSigner, $sSignerCert, $sSigner, $iErrorCode);
+if (!handle_result("AppendValidationDataToSigner", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_createemptysign(
+	$sData, $sPreviousSign, $iErrorCode);
+if (!handle_result("CreateEmptySign", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_appendsigner(
+	$sSigner, $sSignerCert, $sPreviousSign, $sSign, $iErrorCode);
+if (!handle_result("AppendSigner", $iResult, $iErrorCode))
+	Exit;
+
+print_result('Sign', $sSign);
+
+$iResult = euspe_signverify(
+	$sSign, $sSignTime, $bIsTSPUse,
+	$spIssuer, $spIssuerCN, $spSerial,
+	$spSubject, $spSubjCN,
+	$spSubjOrg, $spSubjOrgUnit,
+	$spSubjTitle, $spSubjState,
+	$spSubjLocality, $spSubjFullName,
+	$spSubjAddress, $spSubjPhone,
+	$spSubjEMail, $spSubjDNS,
+	$spSubjEDRPOUCode, $spSubjDRFOCode,
+	$sVerData,
+	$iErrorCode);
+if (!handle_result("VerifySign (internal)", $iResult, $iErrorCode))
+	Exit;
+
+print_result('Verified data', $sVerData);
+print_result('Signer info', '');
 print_result($sTAB.'subject', $spSubjCN);
 print_result($sTAB.'serial', $spSerial);
 print_result($sTAB.'issuer', $spIssuerCN);
