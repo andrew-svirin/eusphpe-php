@@ -40,7 +40,7 @@ class ServerStorage
   /**
    * Prepare server connection for user certificates.
    * Check folders and prepare eusphpe config.
-   * @param User        $user
+   * @param User $user
    * @param Certificate $cert
    * @return Server
    * @throws Exception
@@ -49,7 +49,10 @@ class ServerStorage
   {
     $server = new Server("{$this->dir}/{$user->getServerHost()}/{$user->getUserName()}");
     if (!ServerStorage::verifyHost($user->getServerHost())) {
-      throw new Exception(sprintf('Server name %s is out of available list. Setup you server config first.', $user->getServerHost()));
+      throw new Exception(sprintf(
+        'Server name %s is out of available list. Setup you server config first.',
+        $user->getServerHost()
+      ));
     }
     $server->configure();
     if (!file_exists($server->getOSPLMConfigPath())) {
