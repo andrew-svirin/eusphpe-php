@@ -6,7 +6,8 @@ namespace AndrewSvirin\EUSPE\traits;
  * Trait ExpiredTrait
  * @property string $dir
  */
-trait ExpiredTrait {
+trait ExpiredTrait
+{
 
   public function clearExpired(int $ttl = 3600, $time = null): void
   {
@@ -36,5 +37,4 @@ trait ExpiredTrait {
       }
     }
   }
-
 }

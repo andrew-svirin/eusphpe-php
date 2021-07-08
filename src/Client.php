@@ -8,15 +8,22 @@ class Client implements ClientInterface
 {
 
   /**
-   * @param string   $command
+   * @param string $command
    * @param int|void $iResult
-   * @param int      $iErrorCode
-   * @param array    $aAcceptableErrorCodes
+   * @param int $iErrorCode
+   * @param array $aAcceptableErrorCodes
    * @return bool
    * @throws Exception
    */
-  private function handleResult(string $command, $iResult, int $iErrorCode = null, array $aAcceptableErrorCodes = []): bool
-  {
+  private function handleResult(
+    string $command,
+    $iResult,
+    int $iErrorCode = null,
+    array $aAcceptableErrorCodes = []
+  ): bool {
+    if ($iResult != EM_RESULT_OK && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
+      throw new \RuntimeException('Check the correctness of functions invokation order.');
+    }
     if (!empty($iErrorCode) && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
       $utfEncoding = 'utf-8';
@@ -27,8 +34,8 @@ class Client implements ClientInterface
           dechex($iErrorCode),
           $command,
           ($encoding = mb_detect_encoding($sErrorDescription)) && strtolower($encoding) !== $utfEncoding ?
-                mb_convert_encoding($sErrorDescription, $encoding, $utfEncoding) :
-                $sErrorDescription
+            mb_convert_encoding($sErrorDescription, $encoding, $utfEncoding) :
+            $sErrorDescription
         )
       );
     }
@@ -132,10 +139,10 @@ class Client implements ClientInterface
           $iErrorCode
         ),
         $iErrorCode,
-        [7]
+        [EU_WARNING_END_OF_ENUM]
       );
       $iKeyIndex++;
-      if (7 === $iErrorCode) {
+      if (EU_WARNING_END_OF_ENUM === $iErrorCode) {
         break;
       }
       $this->handleResult(
@@ -226,7 +233,11 @@ class Client implements ClientInterface
    */
   public function getSignerInfo(string $sign, int $index): array
   {
-    $this->handleResult('ctxfreeprivatekey', euspe_getsignerinfoex($index, $sign, $signerInfo, $signerCert, $iErrorCode), $iErrorCode);
+    $this->handleResult(
+      'ctxfreeprivatekey',
+      euspe_getsignerinfoex($index, $sign, $signerInfo, $signerCert, $iErrorCode),
+      $iErrorCode
+    );
     return $signerInfo;
   }
 

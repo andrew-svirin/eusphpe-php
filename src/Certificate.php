@@ -20,7 +20,7 @@ class Certificate
    */
   public function getDirRealPath(): string
   {
-    if(!($realPath = realpath($this->dir))){
+    if (!($realPath = realpath($this->dir))) {
       throw new Exception('Can not find certificates dir.');
     }
     return $realPath;

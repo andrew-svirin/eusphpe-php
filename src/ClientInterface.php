@@ -61,14 +61,14 @@ interface ClientInterface
   /**
    * Signer info from sign.
    * @param string $sign
-   * @param int    $index
+   * @param int $index
    * @return array
    */
   function getSignerInfo(string $sign, int $index): array;
 
   /**
    * @param string $data
-   * @param array  $certs
+   * @param array $certs
    * @return string
    */
   function envelopData(string $data, array $certs): string;

@@ -39,7 +39,7 @@ class KeyRingStorage
 
   /**
    * @param KeyRing $keyRing
-   * @param string  $secretToken
+   * @param string $secretToken
    * @throws Exception
    */
   public function store(KeyRing $keyRing, string $secretToken): void
@@ -64,7 +64,7 @@ class KeyRingStorage
 
   /**
    * @param KeyRing $keyRing
-   * @param string  $secretToken
+   * @param string $secretToken
    * @throws Exception
    */
   public function load(KeyRing $keyRing, string $secretToken): void
