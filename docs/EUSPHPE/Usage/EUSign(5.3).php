@@ -521,10 +521,4 @@ print_result('    subject', $spSubjCN);
 print_result('    serial', $spSerial);
 print_result('    issuer', $spIssuerCN);
 
-//----------------------------------------------------------------------------------------
-
-/* Finalize */
-
-euspe_finalize();
-
 ?>
