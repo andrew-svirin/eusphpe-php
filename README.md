@@ -1,4 +1,4 @@
-1. Configure php extension euspe by documentation (docs/EUSPHPE-20180505/Documentation/EUSignPHPDescription.doc)
+1. Configure php extension euspe by documentation (docs/EUSPHPE/Documentation/EUSignPHPDescription.doc)
     1. Remove osplm.ini from extension directory. 
     1. Add to apache envvars ```LD_LIBRARY_PATH=/server/path/vendor/uis/euspe/servers/default```
 1. Configure stubs for IDE to view functions docs (https://github.com/andrew-svirin/phpstorm-stubs).
