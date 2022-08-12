@@ -55,6 +55,9 @@ $sFileWithDevData = $sTestDataFolder.'Data.new.txt';
 
 $sFileWithFullCRRequest = $sTestDataFolder.'EU.p10';
 
+$sFilePDF = $sTestDataFolder.'Test.pdf';
+$sFileSignedPDF = $sTestDataFolder.'Test.sig.pdf';
+
 //========================================================================================
 
 $iResult = 0;
@@ -1778,5 +1781,753 @@ print_result('Signer info', '');
 print_result($sTAB.'subject', $spSubjCN);
 print_result($sTAB.'serial', $spSerial);
 print_result($sTAB.'issuer', $spIssuerCN);
+
+//----------------------------------------------------------------------------------------
+
+/* Sign & verify ASiC */
+
+$iASiCType = EU_ASIC_TYPE_E;
+$iSignType = EU_ASIC_SIGN_TYPE_XADES;
+$iSignLevel = EU_XADES_SIGN_LEVEL_B_LT;
+$aReferences = ["Test-1.txt", "Test-2.txt"];
+$aReferencesData = ["Data to sign-1", "Data to sign-2"];
+$sASiCData = '';
+$iSignsCount = 0;
+
+$iResult = euspe_asicsigndata(
+	$iASiCType, $iSignType, $iSignLevel,
+	$aReferences, $aReferencesData, 
+	$sASiCData, $iErrorCode);
+if (!handle_result("ASiCSignData", $iResult, 0))
+	Exit;
+
+$iResult = euspe_asicappendsign(
+	$iSignLevel, $aReferences, $sASiCData, 
+	$sASiCData, $iErrorCode);
+if (!handle_result("ASiCAppendSign", $iResult, 0))
+	Exit;
+
+$iResult = euspe_asicgetasictype(
+	$sASiCData, $iASiCType, $iErrorCode);
+if (!handle_result("ASiCGetASiCType", $iResult, $iErrorCode))
+	Exit;
+
+print_result('ASiCType', $iASiCType);
+
+$iResult = euspe_asicgetsigntype(
+	$sASiCData, $iSignType, $iErrorCode);
+if (!handle_result("ASiCGetSignType", $iResult, $iErrorCode))
+	Exit;
+
+print_result('SignType', $iSignType);
+
+$iResult = euspe_asicgetsignscount(
+	$sASiCData, $iSignsCount, $iErrorCode);
+if (!handle_result("ASiCGetSignsCount", $iResult, $iErrorCode))
+	Exit;
+
+for ($iSignIndex = 0; $iSignIndex < $iSignsCount; $iSignIndex++)
+{
+	$iResult = euspe_asicgetsignlevel(
+		$iSignIndex, $sASiCData, $iSignLevel, $iErrorCode);
+	if (!handle_result("ASiCGetSignLevel", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('SignLevel', $iSignLevel);
+
+	$signerInfo = '';
+	$sSignerCert = '';
+	
+	$iResult = euspe_asicgetsignerinfo(
+		$iSignIndex, $sASiCData, 
+		$signerInfo, $sSignerCert, $iErrorCode);
+	if (!handle_result("ASiCGetSignerInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer certificate info-'.($iSignIndex + 1), '');
+	var_dump($signerInfo);
+	echo "<br>";
+
+	$sCertFileName = './EU-'.$signerInfo['serial'].'.cer';
+	file_put_contents($sCertFileName, $sSignerCert);
+	print_result('Signer certificate file', $sCertFileName);
+	
+	$timeInfo = '';
+	
+	$iResult = euspe_asicgetsigntimeinfo(
+		$iSignIndex, $sASiCData, $timeInfo, $iErrorCode);
+	if (!handle_result("ASiCGetSignTimeInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Sign time info', '');
+	var_dump($timeInfo);
+	echo "<br>";
+	
+	$iResult = euspe_asicverifydata(
+		$signIndex, $sASiCData,
+		$sSignTime, $bIsTSPUse,
+		$spIssuer, $spIssuerCN, $spSerial,
+		$spSubject, $spSubjCN,
+		$spSubjOrg, $spSubjOrgUnit,
+		$spSubjTitle, $spSubjState,
+		$spSubjLocality, $spSubjFullName,
+		$spSubjAddress, $spSubjPhone,
+		$spSubjEMail, $spSubjDNS,
+		$spSubjEDRPOUCode, $spSubjDRFOCode,
+		$iErrorCode);
+	if (!handle_result("ASiCVerifySign", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer info', '');
+	print_result($sTAB.'subject', $spSubjCN);
+	print_result($sTAB.'serial', $spSerial);
+	print_result($sTAB.'issuer', $spIssuerCN);
+
+	$aReferences = null;
+
+	$iResult = euspe_asicgetsignreferences(
+		$iSignIndex, $sASiCData, $aReferences, $iErrorCode);
+	if (!handle_result("ASiCGetSignReferences", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('References', '');
+	var_dump($aReferences);
+	echo "<br>";
+
+	foreach ($aReferences as $sReference)
+	{
+		$sReferenceData = null;
+
+		$iResult = euspe_asicgetreference(
+			$sASiCData, $sReference, $sReferenceData, $iErrorCode);
+		if (!handle_result("ASiCGetReference", $iResult, $iErrorCode))
+			Exit;
+		
+		print_result('Reference', $sReference);
+		var_dump($sReferenceData);
+		echo "<br>";
+	}
+
+	$bIsCovered = false;
+
+	$iResult = euspe_asicisallcontentcovered(
+		$iSignIndex, $sASiCData, $bIsCovered, $iErrorCode);
+	if (!handle_result("ASiCIsAllContentCovered", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('IsAllContentCovered', $bIsCovered);
+}
+
+//----------------------------------------------------------------------------------------
+
+/* Ctx sign & verify ASiC */
+
+$context = '';
+$pkContext1 = '';
+$pkContext2 = '';
+$iSignAlgo = EU_CTX_SIGN_DSTU4145_WITH_GOST34311;
+$iASiCType = EU_ASIC_TYPE_E;
+$iSignType = EU_ASIC_SIGN_TYPE_XADES;
+$iSignLevel = EU_XADES_SIGN_LEVEL_B_LT;
+$aReferences = ["Test-1.txt", "Test-2.txt"];
+$aReferencesData = ["Data to sign-1", "Data to sign-2"];
+$sASiCData = '';
+$iSignsCount = 0;
+
+$iResult = euspe_ctxcreate($context, $iErrorCode);
+if (!handle_result("CtxCreate", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_ctxreadprivatekeyfile($context,
+	$sPrivateKeyCtx1, $sPrivateKeyCtxPassword1, $pkContext1, $iErrorCode);
+if (!handle_result("CtxReadPrivateKeyFile-1", $iResult, $iErrorCode))
+{
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxreadprivatekeyfile($context,
+	$sPrivateKeyCtx2, $sPrivateKeyCtxPassword2, $pkContext2, $iErrorCode);
+if (!handle_result("CtxReadPrivateKeyFile-2", $iResult, $iErrorCode))
+{
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxasicsigndata(
+	$pkContext1, $iSignAlgo,
+	$iASiCType, $iSignType, $iSignLevel,
+	$aReferences, $aReferencesData, 
+	$sASiCData, $iErrorCode);
+if (!handle_result("CtxASiCSignData", $iResult, 0))
+{
+	euspe_ctxfreeprivatekey($pkContext2);
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxasicappendsign(
+	$pkContext2, $iSignAlgo,
+	$iSignLevel, $aReferences, $sASiCData, 
+	$sASiCData, $iErrorCode);
+if (!handle_result("CtxASiCAppendSign", $iResult, 0))
+{
+	euspe_ctxfreeprivatekey($pkContext2);
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+euspe_ctxfreeprivatekey($pkContext2);
+euspe_ctxfreeprivatekey($pkContext1);
+euspe_ctxfree($context);
+
+$iResult = euspe_asicgetasictype(
+	$sASiCData, $iASiCType, $iErrorCode);
+if (!handle_result("ASiCGetASiCType", $iResult, $iErrorCode))
+	Exit;
+
+print_result('ASiCType', $iASiCType);
+
+$iResult = euspe_asicgetsigntype(
+	$sASiCData, $iSignType, $iErrorCode);
+if (!handle_result("ASiCGetSignType", $iResult, $iErrorCode))
+	Exit;
+
+
+print_result('SignType', $iSignType);
+
+$iResult = euspe_asicgetsignscount(
+	$sASiCData, $iSignsCount, $iErrorCode);
+if (!handle_result("ASiCGetSignsCount", $iResult, $iErrorCode))
+	Exit;
+
+for ($iSignIndex = 0; $iSignIndex < $iSignsCount; $iSignIndex++)
+{
+	$iResult = euspe_asicgetsignlevel(
+		$iSignIndex, $sASiCData, $iSignLevel, $iErrorCode);
+	if (!handle_result("ASiCGetSignLevel", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('SignLevel', $iSignLevel);
+
+	$iResult = euspe_ctxcreate($context, $iErrorCode);
+	if (!handle_result("CtxCreate", $iResult, $iErrorCode))
+		Exit;
+
+	$signerInfo = '';
+	$sSignerCert = '';
+
+	$iResult = euspe_ctxasicgetsignerinfo(
+		$context, $iSignIndex, $sASiCData, 
+		$signerInfo, $sSignerCert, $iErrorCode);
+	if (!handle_result("CtxASiCGetSignerInfo", $iResult, $iErrorCode))
+	{
+		euspe_ctxfree($context);
+		Exit;
+	}
+	
+	euspe_ctxfree($context);
+
+	print_result('Signer certificate info-'.($iSignIndex + 1), '');
+	var_dump($signerInfo);
+	echo "<br>";
+
+	$sCertFileName = './EU-'.$signerInfo['serial'].'.cer';
+	file_put_contents($sCertFileName, $sSignerCert);
+	print_result('Signer certificate file', $sCertFileName);
+	
+	$timeInfo = '';
+	
+	$iResult = euspe_asicgetsigntimeinfo(
+		$iSignIndex, $sASiCData, $timeInfo, $iErrorCode);
+	if (!handle_result("ASiCGetSignTimeInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Sign time info', '');
+	var_dump($timeInfo);
+	echo "<br>";
+	
+	$iResult = euspe_asicverifydata(
+		$signIndex, $sASiCData,
+		$sSignTime, $bIsTSPUse,
+		$spIssuer, $spIssuerCN, $spSerial,
+		$spSubject, $spSubjCN,
+		$spSubjOrg, $spSubjOrgUnit,
+		$spSubjTitle, $spSubjState,
+		$spSubjLocality, $spSubjFullName,
+		$spSubjAddress, $spSubjPhone,
+		$spSubjEMail, $spSubjDNS,
+		$spSubjEDRPOUCode, $spSubjDRFOCode,
+		$iErrorCode);
+	if (!handle_result("ASiCVerifySign", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer info', '');
+	print_result($sTAB.'subject', $spSubjCN);
+	print_result($sTAB.'serial', $spSerial);
+	print_result($sTAB.'issuer', $spIssuerCN);
+
+	$aReferences = null;
+
+	$iResult = euspe_asicgetsignreferences(
+		$iSignIndex, $sASiCData, $aReferences, $iErrorCode);
+	if (!handle_result("ASiCGetSignReferences", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('References', '');
+	var_dump($aReferences);
+	echo "<br>";
+
+	foreach ($aReferences as $sReference)
+	{
+		$sReferenceData = null;
+
+		$iResult = euspe_asicgetreference(
+			$sASiCData, $sReference, $sReferenceData, $iErrorCode);
+		if (!handle_result("ASiCGetReference", $iResult, $iErrorCode))
+			Exit;
+
+		print_result('Reference', $sReference);
+		var_dump($sReferenceData);
+		echo "<br>";
+	}
+
+	$bIsCovered = false;
+
+	$iResult = euspe_asicisallcontentcovered(
+		$iSignIndex, $sASiCData, $bIsCovered, $iErrorCode);
+	if (!handle_result("ASiCIsAllContentCovered", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('IsAllContentCovered', $bIsCovered);
+}
+
+//----------------------------------------------------------------------------------------
+
+/* Sign & verify XAdES */
+
+$iSignType = EU_XADES_TYPE_DETACHED;
+$iSignLevel = EU_XADES_SIGN_LEVEL_B_LT;
+$aReferences = ["Test-1.txt", "Test-2.txt"];
+$aReferencesData = ["Data to sign-1", "Data to sign-2"];
+$sXAdESData = '';
+$iSignsCount = 0;
+
+$iResult = euspe_xadessigndata(
+	$iSignType, $iSignLevel,
+	$aReferences, $aReferencesData, 
+	$sXAdESData, $iErrorCode);
+if (!handle_result("XAdESSignData", $iResult, 0))
+	Exit;
+
+$iResult = euspe_xadesgettype(
+	$sXAdESData, $iSignType, $iErrorCode);
+if (!handle_result("XAdESGetType", $iResult, $iErrorCode))
+	Exit;
+
+print_result('XAdESType', $iSignType);
+
+$iResult = euspe_xadesgetsignscount(
+	$sXAdESData, $iSignsCount, $iErrorCode);
+if (!handle_result("XAdESGetSignsCount", $iResult, $iErrorCode))
+	Exit;
+
+for ($iSignIndex = 0; $iSignIndex < $iSignsCount; $iSignIndex++)
+{
+	$iResult = euspe_xadesgetsignlevel(
+		$iSignIndex, $sXAdESData, $iSignLevel, $iErrorCode);
+	if (!handle_result("XAdESGetSignLevel", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('SignLevel', $iSignLevel);
+
+	$signerInfo = '';
+	$sSignerCert = '';
+	
+	$iResult = euspe_xadesgetsignerinfo(
+		$iSignIndex, $sXAdESData, 
+		$signerInfo, $sSignerCert, $iErrorCode);
+	if (!handle_result("XAdESGetSignerInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer certificate info-'.($iSignIndex + 1), '');
+	var_dump($signerInfo);
+	echo "<br>";
+
+	$sCertFileName = './EU-'.$signerInfo['serial'].'.cer';
+	file_put_contents($sCertFileName, $sSignerCert);
+	print_result('Signer certificate file', $sCertFileName);
+	
+	$timeInfo = '';
+	
+	$iResult = euspe_xadesgetsigntimeinfo(
+		$iSignIndex, $sXAdESData, $timeInfo, $iErrorCode);
+	if (!handle_result("XAdESGetSignTimeInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Sign time info', '');
+	var_dump($timeInfo);
+	echo "<br>";
+	
+	$iResult = euspe_xadesverifydata(
+		$aReferences, $aReferencesData,
+		$signIndex, $sXAdESData,
+		$sSignTime, $bIsTSPUse,
+		$spIssuer, $spIssuerCN, $spSerial,
+		$spSubject, $spSubjCN,
+		$spSubjOrg, $spSubjOrgUnit,
+		$spSubjTitle, $spSubjState,
+		$spSubjLocality, $spSubjFullName,
+		$spSubjAddress, $spSubjPhone,
+		$spSubjEMail, $spSubjDNS,
+		$spSubjEDRPOUCode, $spSubjDRFOCode,
+		$iErrorCode);
+	if (!handle_result("XAdESVerifySign", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer info', '');
+	print_result($sTAB.'subject', $spSubjCN);
+	print_result($sTAB.'serial', $spSerial);
+	print_result($sTAB.'issuer', $spIssuerCN);
+}
+
+//----------------------------------------------------------------------------------------
+
+/* Ctx sign & verify XAdES */
+
+$context = '';
+$pkContext1 = '';
+$iSignAlgo = EU_CTX_SIGN_DSTU4145_WITH_GOST34311;
+$iSignType = EU_XADES_TYPE_DETACHED;
+$iSignLevel = EU_XADES_SIGN_LEVEL_B_LT;
+$aReferences = ["Test-1.txt", "Test-2.txt"];
+$aReferencesData = ["Data to sign-1", "Data to sign-2"];
+$sXAdESData = '';
+$iSignsCount = 0;
+
+$iResult = euspe_ctxcreate($context, $iErrorCode);
+if (!handle_result("CtxCreate", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_ctxreadprivatekeyfile($context,
+	$sPrivateKeyCtx1, $sPrivateKeyCtxPassword1, $pkContext1, $iErrorCode);
+if (!handle_result("CtxReadPrivateKeyFile-1", $iResult, $iErrorCode))
+{
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxxadessigndata(
+	$pkContext1, $iSignAlgo,
+	$iSignType, $iSignLevel,
+	$aReferences, $aReferencesData, 
+	$sXAdESData, $iErrorCode);
+if (!handle_result("CtxXAdESSignData", $iResult, 0))
+{
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+euspe_ctxfreeprivatekey($pkContext1);
+euspe_ctxfree($context);
+
+$iResult = euspe_xadesgetsignscount(
+	$sXAdESData, $iSignsCount, $iErrorCode);
+if (!handle_result("XAdESGetSignsCount", $iResult, $iErrorCode))
+	Exit;
+
+for ($iSignIndex = 0; $iSignIndex < $iSignsCount; $iSignIndex++)
+{
+	$iResult = euspe_xadesgetsignlevel(
+		$iSignIndex, $sXAdESData, $iSignLevel, $iErrorCode);
+	if (!handle_result("XAdESGetSignLevel", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('SignLevel', $iSignLevel);
+
+	$iResult = euspe_ctxcreate($context, $iErrorCode);
+	if (!handle_result("CtxCreate", $iResult, $iErrorCode))
+		Exit;
+
+	$signerInfo = '';
+	$sSignerCert = '';
+	
+	$iResult = euspe_ctxxadesgetsignerinfo(
+		$context, $iSignIndex, $sXAdESData, 
+		$signerInfo, $sSignerCert, $iErrorCode);
+	if (!handle_result("CtxXAdESGetSignerInfo", $iResult, $iErrorCode))
+	{
+		euspe_ctxfree($context);
+		Exit;
+	}
+
+	euspe_ctxfree($context);
+
+	print_result('Signer certificate info-'.($iSignIndex + 1), '');
+	var_dump($signerInfo);
+	echo "<br>";
+
+	$sCertFileName = './EU-'.$signerInfo['serial'].'.cer';
+	file_put_contents($sCertFileName, $sSignerCert);
+	print_result('Signer certificate file', $sCertFileName);
+	
+	$timeInfo = '';
+	
+	$iResult = euspe_xadesgetsigntimeinfo(
+		$iSignIndex, $sXAdESData, $timeInfo, $iErrorCode);
+	if (!handle_result("XAdESGetSignTimeInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Sign time info', '');
+	var_dump($timeInfo);
+	echo "<br>";
+	
+	$iResult = euspe_xadesverifydata(
+		$aReferences, $aReferencesData,
+		$signIndex, $sXAdESData,
+		$sSignTime, $bIsTSPUse,
+		$spIssuer, $spIssuerCN, $spSerial,
+		$spSubject, $spSubjCN,
+		$spSubjOrg, $spSubjOrgUnit,
+		$spSubjTitle, $spSubjState,
+		$spSubjLocality, $spSubjFullName,
+		$spSubjAddress, $spSubjPhone,
+		$spSubjEMail, $spSubjDNS,
+		$spSubjEDRPOUCode, $spSubjDRFOCode,
+		$iErrorCode);
+	if (!handle_result("XAdESVerifySign", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer info', '');
+	print_result($sTAB.'subject', $spSubjCN);
+	print_result($sTAB.'serial', $spSerial);
+	print_result($sTAB.'issuer', $spIssuerCN);
+}
+
+//----------------------------------------------------------------------------------------
+
+/* Sign & verify PAdES */
+
+$iSignLevel = EU_PADES_SIGN_LEVEL_B_T;
+$sPDFData = '';
+$sSignedPDFData = '';
+$iSignsCount = 0;
+
+$sPDFData = file_get_contents($sFilePDF, FILE_USE_INCLUDE_PATH);
+
+$iResult = euspe_pdfsigndata(
+	$sPDFData, $iSignLevel,
+	$sSignedPDFData, $iErrorCode);
+if (!handle_result("PDFSignData", $iResult, 0))
+	Exit;
+
+file_put_contents($sFileSignedPDF, $sSignedPDFData);
+print_result('Signed PDF file', $sFileSignedPDF);
+
+$iResult = euspe_pdfgetsignscount(
+	$sSignedPDFData, $iSignsCount, $iErrorCode);
+if (!handle_result("PDFGetSignsCount", $iResult, $iErrorCode))
+	Exit;
+
+for ($iSignIndex = 0; $iSignIndex < $iSignsCount; $iSignIndex++)
+{
+	$iResult = euspe_pdfgetsigntype(
+		$iSignIndex, $sSignedPDFData, $iSignLevel, $iErrorCode);
+	if (!handle_result("PDFGetSignType", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('SignLevel', $iSignLevel);
+
+	$signerInfo = '';
+	$sSignerCert = '';
+	
+	$iResult = euspe_pdfgetsignerinfo(
+		$iSignIndex, $sSignedPDFData, 
+		$signerInfo, $sSignerCert, $iErrorCode);
+	if (!handle_result("PDFGetSignerInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer certificate info-'.($iSignIndex + 1), '');
+	var_dump($signerInfo);
+	echo "<br>";
+
+	$sCertFileName = './EU-'.$signerInfo['serial'].'.cer';
+	file_put_contents($sCertFileName, $sSignerCert);
+	print_result('Signer certificate file', $sCertFileName);
+	
+	$timeInfo = '';
+	
+	$iResult = euspe_pdfgetsigntimeinfo(
+		$iSignIndex, $sSignedPDFData, $timeInfo, $iErrorCode);
+	if (!handle_result("PDFGetSignTimeInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Sign time info', '');
+	var_dump($timeInfo);
+	echo "<br>";
+	
+	$iResult = euspe_pdfverifydata(
+		$signIndex, $sSignedPDFData,
+		$sSignTime, $bIsTSPUse,
+		$spIssuer, $spIssuerCN, $spSerial,
+		$spSubject, $spSubjCN,
+		$spSubjOrg, $spSubjOrgUnit,
+		$spSubjTitle, $spSubjState,
+		$spSubjLocality, $spSubjFullName,
+		$spSubjAddress, $spSubjPhone,
+		$spSubjEMail, $spSubjDNS,
+		$spSubjEDRPOUCode, $spSubjDRFOCode,
+		$iErrorCode);
+	if (!handle_result("PDFVerifySign", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer info', '');
+	print_result($sTAB.'subject', $spSubjCN);
+	print_result($sTAB.'serial', $spSerial);
+	print_result($sTAB.'issuer', $spIssuerCN);
+}
+
+//----------------------------------------------------------------------------------------
+
+/* Ctx sign & verify PAdES */
+
+$context = '';
+$pkContext1 = '';
+$pkContext2 = '';
+$iSignAlgo = EU_CTX_SIGN_DSTU4145_WITH_GOST34311;
+$iSignLevel = EU_PADES_SIGN_LEVEL_B_T;
+$sPDFData = '';
+$sSignedPDFData = '';
+$iSignsCount = 0;
+
+$sPDFData = file_get_contents($sFilePDF, FILE_USE_INCLUDE_PATH);
+
+$iResult = euspe_ctxcreate($context, $iErrorCode);
+if (!handle_result("CtxCreate", $iResult, $iErrorCode))
+	Exit;
+
+$iResult = euspe_ctxreadprivatekeyfile($context,
+	$sPrivateKeyCtx1, $sPrivateKeyCtxPassword1, $pkContext1, $iErrorCode);
+if (!handle_result("CtxReadPrivateKeyFile-1", $iResult, $iErrorCode))
+{
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxreadprivatekeyfile($context,
+	$sPrivateKeyCtx2, $sPrivateKeyCtxPassword2, $pkContext2, $iErrorCode);
+if (!handle_result("CtxReadPrivateKeyFile-2", $iResult, $iErrorCode))
+{
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxpdfsigndata(
+	$pkContext1, $iSignAlgo, $sPDFData, $iSignLevel,
+	$sSignedPDFData, $iErrorCode);
+if (!handle_result("CtxPDFSignData", $iResult, 0))
+{
+	euspe_ctxfreeprivatekey($pkContext2);
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+$iResult = euspe_ctxpdfsigndata(
+	$pkContext2, $iSignAlgo, $sSignedPDFData, $iSignLevel,
+	$sSignedPDFData, $iErrorCode);
+if (!handle_result("CtxPDFSignData", $iResult, 0))
+{
+	euspe_ctxfreeprivatekey($pkContext2);
+	euspe_ctxfreeprivatekey($pkContext1);
+	euspe_ctxfree($context);
+	Exit;
+}
+
+euspe_ctxfreeprivatekey($pkContext2);
+euspe_ctxfreeprivatekey($pkContext1);
+euspe_ctxfree($context);
+
+file_put_contents($sFileSignedPDF, $sSignedPDFData);
+print_result('Signed PDF file', $sFileSignedPDF);
+
+$iResult = euspe_pdfgetsignscount(
+	$sSignedPDFData, $iSignsCount, $iErrorCode);
+if (!handle_result("PDFGetSignsCount", $iResult, $iErrorCode))
+	Exit;
+
+for ($iSignIndex = 0; $iSignIndex < $iSignsCount; $iSignIndex++)
+{
+	$iResult = euspe_pdfgetsigntype(
+		$iSignIndex, $sSignedPDFData, $iSignLevel, $iErrorCode);
+	if (!handle_result("PDFGetSignType", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('SignLevel', $iSignLevel);
+
+	$iResult = euspe_ctxcreate($context, $iErrorCode);
+	if (!handle_result("CtxCreate", $iResult, $iErrorCode))
+		Exit;
+
+	$signerInfo = '';
+	$sSignerCert = '';
+	
+	$iResult = euspe_ctxpdfgetsignerinfo(
+		$context, $iSignIndex, $sSignedPDFData, 
+		$signerInfo, $sSignerCert, $iErrorCode);
+	if (!handle_result("CtxPDFGetSignerInfo", $iResult, $iErrorCode))
+	{
+		euspe_ctxfree($context);
+		Exit;
+	}
+	
+	euspe_ctxfree($context);
+	
+	print_result('Signer certificate info-'.($iSignIndex + 1), '');
+	var_dump($signerInfo);
+	echo "<br>";
+
+	$sCertFileName = './EU-'.$signerInfo['serial'].'.cer';
+	file_put_contents($sCertFileName, $sSignerCert);
+	print_result('Signer certificate file', $sCertFileName);
+	
+	$timeInfo = '';
+	
+	$iResult = euspe_pdfgetsigntimeinfo(
+		$iSignIndex, $sSignedPDFData, $timeInfo, $iErrorCode);
+	if (!handle_result("PDFGetSignTimeInfo", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Sign time info', '');
+	var_dump($timeInfo);
+	echo "<br>";
+	
+	$iResult = euspe_pdfverifydata(
+		$signIndex, $sSignedPDFData,
+		$sSignTime, $bIsTSPUse,
+		$spIssuer, $spIssuerCN, $spSerial,
+		$spSubject, $spSubjCN,
+		$spSubjOrg, $spSubjOrgUnit,
+		$spSubjTitle, $spSubjState,
+		$spSubjLocality, $spSubjFullName,
+		$spSubjAddress, $spSubjPhone,
+		$spSubjEMail, $spSubjDNS,
+		$spSubjEDRPOUCode, $spSubjDRFOCode,
+		$iErrorCode);
+	if (!handle_result("PDFVerifySign", $iResult, $iErrorCode))
+		Exit;
+
+	print_result('Signer info', '');
+	print_result($sTAB.'subject', $spSubjCN);
+	print_result($sTAB.'serial', $spSerial);
+	print_result($sTAB.'issuer', $spIssuerCN);
+}
+
+//----------------------------------------------------------------------------------------
 
 ?>

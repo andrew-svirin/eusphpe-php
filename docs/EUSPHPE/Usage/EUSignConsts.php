@@ -117,6 +117,29 @@ define("EU_SIGN_TYPE_CADES_X_LONG",				0x10);
 
 define("EU_OID_EXT_KEY_USAGE_STAMP", 			"1.2.804.2.1.1.1.3.9");
 
+define("EU_ASIC_TYPE_UNKNOWN",					0);
+define("EU_ASIC_TYPE_S",						1);
+define("EU_ASIC_TYPE_E",						2);
+
+define("EU_ASIC_SIGN_TYPE_UNKNOWN",				0);
+define("EU_ASIC_SIGN_TYPE_CADES",				1);
+define("EU_ASIC_SIGN_TYPE_XADES",				2);
+
+define("EU_XADES_TYPE_UNKNOWN",					0);
+define("EU_XADES_TYPE_DETACHED",				1);
+define("EU_XADES_TYPE_ENVELOPING",				2);
+define("EU_XADES_TYPE_ENVELOPED",				3);
+
+define("EU_XADES_SIGN_LEVEL_UNKNOWN",			0);
+define("EU_XADES_SIGN_LEVEL_B_B",				1);
+define("EU_XADES_SIGN_LEVEL_B_T",				4);
+define("EU_XADES_SIGN_LEVEL_B_LT",				16);
+define("EU_XADES_SIGN_LEVEL_B_LTA",				32);
+
+define("EU_PADES_SIGN_LEVEL_UNKNOWN",			0);
+define("EU_PADES_SIGN_LEVEL_B_B",				1);
+define("EU_PADES_SIGN_LEVEL_B_T",				4);
+
 //========================================================================================
 
 ?>
