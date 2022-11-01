@@ -22,7 +22,9 @@ class Client implements ClientInterface
     array $aAcceptableErrorCodes = []
   ): bool {
     if ($iResult != EM_RESULT_OK && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
-      throw new \RuntimeException('Check the correctness of functions invokation order.');
+      euspe_geterrdescr($iErrorCode, $sErrorDescription);
+      throw new \RuntimeException('Check the correctness of functions invoсation order.' .
+      'Code: ' . $iErrorCode . ' Description: ' . $sErrorDescription);
     }
     if (!empty($iErrorCode) && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
