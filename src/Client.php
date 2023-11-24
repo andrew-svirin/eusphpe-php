@@ -24,7 +24,7 @@ class Client implements ClientInterface
     if ($iResult != EM_RESULT_OK && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
       throw new \RuntimeException('Check the correctness of functions invocation order.' .
-      ' Code: ' . $iErrorCode . ' Description: ' . $sErrorDescription);
+      ' Code: 0x00' . dechex($iErrorCode) . ' Description: ' . $sErrorDescription);
     }
     if (!empty($iErrorCode) && !in_array($iErrorCode, $aAcceptableErrorCodes)) {
       euspe_geterrdescr($iErrorCode, $sErrorDescription);
