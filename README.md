@@ -80,5 +80,4 @@
 
 
 ## EUSPHPE Distro
-Original EUSPHPE distro can be obtained from 
-[https://iit.com.ua/download/EUSPHPE-20210621.zip](https://iit.com.ua/download/EUSPHPE-20210621.zip)
+Original EUSPHPE distro can be obtained from https://iit.com.ua/downloads
